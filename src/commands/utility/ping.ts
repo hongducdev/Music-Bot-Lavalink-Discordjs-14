@@ -12,7 +12,7 @@ function latencyEmbed(ping: number, roundTrip: number, avatar: string | null) {
     )
     .setTimestamp();
 
-  if (avatar) builder.setThumbnail(avatar);
+  if (avatar) builder.setThumbnail(avatar, "Ảnh đại diện của bot");
   return builder;
 }
 

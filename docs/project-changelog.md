@@ -13,6 +13,7 @@
 ### Fixed
 
 - Autoplay/fallback now pass the track requester to Lavalink search, preserving attribution for RPC.
+- Bot info card was being sent without its content: the reply payload spread `silentReply(card)` and then overwrote the `components` key with the invite button, dropping the whole container. Now passes the button through `silentReply(card, [button])`.
 
 ### Changed
 

@@ -96,6 +96,7 @@ export function createLavalink(client: Client): LavalinkManager {
       description: `▶️ | Đang phát:\n> ${info ? trackLink(info) : "Không rõ"}`,
       author: "Now playing",
       thumbnail: info ? artworkUrl(info) : null,
+      sectionNote: `🎵 ${info?.author || "Không rõ"} · ⏱️ ${formatTrackDuration(info?.duration)}`,
       fields: [
         {
           name: "🔷 | Trạng thái",
@@ -106,9 +107,7 @@ export function createLavalink(client: Client): LavalinkManager {
           }),
           inline: false,
         },
-        { name: "⏱️ | Thời lượng", value: formatTrackDuration(info?.duration), inline: true },
-        { name: "🎵 | Kênh", value: info?.author || "Không rõ", inline: true },
-        { name: "👌 | Yêu cầu bởi", value: requesterName(track?.requester), inline: true },
+        { name: "👌 | Yêu cầu bởi", value: requesterName(track?.requester), inline: false },
       ],
       footer: `${player.queue.tracks.length} bài trong hàng đợi`,
       components: [buildMusicController(player)],
@@ -186,6 +185,8 @@ interface NotifyOptions {
   author?: string;
   color?: number;
   thumbnail?: string | null;
+  /** Dong bo sung trong Section, chi hien khi co thumbnail. */
+  sectionNote?: string;
   fields?: APIEmbedField[];
   footer?: string;
   components?: ActionRowBuilder<ButtonBuilder>[];
@@ -203,17 +204,19 @@ function notify(
   if (!channel?.isSendable()) return;
 
   const builder = embed(options.description, options.color ?? EMBED_COLORS.default, options.author);
-  if (options.thumbnail) builder.setThumbnail(options.thumbnail);
+  if (options.thumbnail) builder.setThumbnail(options.thumbnail, "Ảnh bìa bài hát");
+  if (options.sectionNote) builder.setSectionNote(options.sectionNote);
   if (options.fields?.length) builder.addFields(options.fields);
   if (options.footer) builder.setFooter({ text: options.footer });
+  // Nut nam trong container de dinh lien voi the bai hat, khong render roi ben ngoai.
+  if (options.components?.length) builder.addActionRows(...options.components);
 
   channel
     .send({
-      embeds: [builder],
-      ...(options.components?.length ? { components: options.components } : {}),
+      components: [builder],
       // Thong bao cua bot khong bao gio ping ai: mention trong embed chi de hien thi.
       allowedMentions: NO_PING,
-      flags: MessageFlags.SuppressNotifications,
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.SuppressNotifications,
     })
     .then((sent) => {
       if (options.deleteAfterMs) deleteAfter(() => sent.delete(), options.deleteAfterMs);

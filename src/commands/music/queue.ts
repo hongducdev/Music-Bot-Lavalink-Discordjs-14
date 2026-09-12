@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, type EmbedBuilder } from "discord.js";
+import { SlashCommandBuilder } from "discord.js";
 import type { Player } from "lavalink-client";
 import type { Command } from "../../types/command.js";
 import {
@@ -8,12 +8,13 @@ import {
   privateReplyAndCleanup,
   silentReply,
   silentReplyAndCleanup,
+  type MessageContainerBuilder,
 } from "../../utils/embed.js";
 import { artworkUrl, formatDuration, formatTrackDuration, trackLink } from "../../utils/text.js";
 
 const PREVIEW_LIMIT = 10;
 
-function buildQueueEmbed(player: Player): EmbedBuilder {
+function buildQueueEmbed(player: Player): MessageContainerBuilder {
   const current = player.queue.current;
   const tracks = player.queue.tracks;
   const preview = tracks.slice(0, PREVIEW_LIMIT);
@@ -46,7 +47,7 @@ function buildQueueEmbed(player: Player): EmbedBuilder {
 
   builder.setFooter({ text: `${tracks.length} bài trong hàng đợi` });
   const thumbnail = current ? artworkUrl(current.info) : null;
-  if (thumbnail) builder.setThumbnail(thumbnail);
+  if (thumbnail) builder.setThumbnail(thumbnail, `Ảnh bìa bài hát ${current!.info.title}`);
   return builder;
 }
 

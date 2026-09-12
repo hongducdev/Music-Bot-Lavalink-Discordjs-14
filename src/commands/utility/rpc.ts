@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, type Client } from "discord.js";
+import { MessageFlags, SlashCommandBuilder, type Client } from "discord.js";
 import type { Command } from "../../types/command.js";
 import { embed, privateReply, silentReply } from "../../utils/embed.js";
 import type {} from "../../rpc/requester-rpc.js";
@@ -34,7 +34,7 @@ export const command: Command = {
     const text = response(message.client, message.author.id, action);
     if (action === "connect") {
       try {
-        await message.author.send({ embeds: [embed(text, undefined, "RPC")], allowedMentions: { parse: [] } });
+        await message.author.send({ components: [embed(text, undefined, "RPC")], flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } });
         await message.reply(silentReply(embed("Đã gửi hướng dẫn RPC qua tin nhắn riêng.", undefined, "RPC")));
       } catch {
         await message.reply(silentReply(embed("Không gửi được DM. Dùng `/rpc connect` để nhận link riêng tư.", undefined, "RPC")));

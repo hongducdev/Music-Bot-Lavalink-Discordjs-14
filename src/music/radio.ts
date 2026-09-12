@@ -2,9 +2,8 @@ import {
   ActionRowBuilder,
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
-  type EmbedBuilder,
 } from "discord.js";
-import { EMBED_COLORS, embed } from "../utils/embed.js";
+import { EMBED_COLORS, embed, type MessageContainerBuilder } from "../utils/embed.js";
 
 export const RADIO_SELECT_ID = "radio_select_station";
 
@@ -188,7 +187,7 @@ export function findRadioStation(input?: string | null): RadioStation | undefine
   );
 }
 
-export function buildRadioEmbed(): EmbedBuilder {
+export function buildRadioEmbed(): MessageContainerBuilder {
   const list = Object.values(RADIO_STATIONS)
     .map((s) => `${s.emoji} **${s.name}** (\`${s.id}\`)\n> ${s.description}`)
     .join("\n\n");

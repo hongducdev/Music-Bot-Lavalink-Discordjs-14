@@ -108,16 +108,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
 
     // Tim stream co the lau hon 3s -> phai defer truoc khi goi mang.
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 });
 
     const res = await playRadioStation(member, interaction.channel, station, interaction.client);
     if (!res.success) {
-      await interaction.editReply({ embeds: [embed(res.message, EMBED_COLORS.error, "Radio")] });
+      await interaction.editReply({ components: [embed(res.message, EMBED_COLORS.error, "Radio")] });
       deleteAfter(() => interaction.deleteReply(), DELETE_AFTER.error);
       return;
     }
 
-    await interaction.editReply({ embeds: [embed(res.message, EMBED_COLORS.default, "Radio")] });
+    await interaction.editReply({ components: [embed(res.message, EMBED_COLORS.default, "Radio")] });
     return;
   }
 
@@ -148,10 +148,11 @@ client.on(Events.MessageCreate, async (message) => {
   const sendBotInfo = async (): Promise<void> => {
     if (!client.user) return;
     try {
-      await message.reply({
-        ...silentReply(buildBotInfoEmbed(client, config.prefix, commands.size)),
-        components: [inviteButton(client.user.id)],
-      });
+      await message.reply(
+        silentReply(buildBotInfoEmbed(client, config.prefix, commands.size), [
+          inviteButton(client.user.id),
+        ])
+      );
     } catch (error) {
       console.error("[bot-info] Không trả lời được mention:", error);
     }

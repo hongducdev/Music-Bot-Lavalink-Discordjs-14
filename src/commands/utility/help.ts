@@ -1,7 +1,13 @@
-import { SlashCommandBuilder, type EmbedBuilder } from "discord.js";
+import { SlashCommandBuilder } from "discord.js";
 import type { Command } from "../../types/command.js";
 import { config } from "../../config.js";
-import { EMBED_COLORS, embed, privateReply, silentReply } from "../../utils/embed.js";
+import {
+  EMBED_COLORS,
+  embed,
+  privateReply,
+  silentReply,
+  type MessageContainerBuilder,
+} from "../../utils/embed.js";
 
 const CATEGORY_ICONS: Record<string, string> = {
   music: "🎵",
@@ -12,7 +18,7 @@ function categoryIcon(category: string): string {
   return CATEGORY_ICONS[category] ?? "📁";
 }
 
-function overviewEmbed(commands: Command[]): EmbedBuilder {
+function overviewEmbed(commands: Command[]): MessageContainerBuilder {
   const grouped = new Map<string, Command[]>();
   for (const command of commands) {
     const category = command.category ?? "khác";
@@ -38,7 +44,7 @@ function overviewEmbed(commands: Command[]): EmbedBuilder {
   return builder;
 }
 
-function detailEmbed(command: Command): EmbedBuilder {
+function detailEmbed(command: Command): MessageContainerBuilder {
   const prefixUsage = command.executeMessage
     ? `\`${config.prefix}${command.data.name}\``
     : "không hỗ trợ";
@@ -65,7 +71,7 @@ function findCommand(commands: Command[], query: string): Command | undefined {
   );
 }
 
-function notFoundEmbed(query: string): EmbedBuilder {
+function notFoundEmbed(query: string): MessageContainerBuilder {
   return embed(`🚫 | Không tìm thấy lệnh **${query}**.`, EMBED_COLORS.error, "Help");
 }
 

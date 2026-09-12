@@ -102,9 +102,8 @@ export const command: Command = {
     const stationId = interaction.options.getString("station");
     if (!stationId) {
       await interaction.reply({
-        embeds: [buildRadioEmbed()],
-        components: [buildRadioSelectMenu()],
-        flags: MessageFlags.SuppressNotifications,
+        components: [buildRadioEmbed().addActionRows(buildRadioSelectMenu())],
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.SuppressNotifications,
       });
       return;
     }
@@ -128,26 +127,25 @@ export const command: Command = {
     }
 
     // Tim stream co the lau hon 3s -> phai defer truoc khi goi mang.
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 });
 
     const res = await playRadioStation(member, interaction.channel, station, interaction.client);
     if (!res.success) {
       await interaction.editReply({
-        embeds: [embed(res.message, EMBED_COLORS.error, "Radio")],
+        components: [embed(res.message, EMBED_COLORS.error, "Radio")],
       });
       deleteAfter(() => interaction.deleteReply(), DELETE_AFTER.error);
       return;
     }
 
-    await interaction.editReply({ embeds: [embed(res.message, EMBED_COLORS.default, "Radio")] });
+    await interaction.editReply({ components: [embed(res.message, EMBED_COLORS.default, "Radio")] });
   },
   async executeMessage(message, args) {
     const query = args.join(" ").trim();
     if (!query) {
       await message.reply({
-        embeds: [buildRadioEmbed()],
-        components: [buildRadioSelectMenu()],
-        flags: MessageFlags.SuppressNotifications,
+        components: [buildRadioEmbed().addActionRows(buildRadioSelectMenu())],
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.SuppressNotifications,
       });
       return;
     }

@@ -42,7 +42,7 @@ function addedTrackEmbed(track: AnyTrack) {
   );
 
   const thumbnail = artworkUrl(info);
-  if (thumbnail) builder.setThumbnail(thumbnail);
+  if (thumbnail) builder.setThumbnail(thumbnail, `Ảnh bìa bài hát ${info.title}`);
   return builder;
 }
 
@@ -111,7 +111,7 @@ export const command: Command = {
     }
 
     // /play tra loi rieng cho nguoi go lenh; thong bao cong khai do card "Now playing" dam nhiem.
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 });
 
     clearActiveRadio(interaction.guildId!);
 
@@ -132,7 +132,7 @@ export const command: Command = {
 
     if (!res.tracks.length) {
       await interaction.editReply({
-        embeds: [embed(`😕 | Không tìm thấy bài nào cho **${query}**.`, EMBED_COLORS.error, "Play")],
+        components: [embed(`😕 | Không tìm thấy bài nào cho **${query}**.`, EMBED_COLORS.error, "Play")],
         allowedMentions: NO_PING,
       });
       deleteAfter(() => interaction.deleteReply(), DELETE_AFTER.error);
@@ -142,13 +142,13 @@ export const command: Command = {
     if (res.loadType === "playlist") {
       player.queue.add(res.tracks);
       await interaction.editReply({
-        embeds: [addedPlaylistEmbed(res.tracks.length, res.playlist?.title || "Playlist")],
+        components: [addedPlaylistEmbed(res.tracks.length, res.playlist?.title || "Playlist")],
         allowedMentions: NO_PING,
       });
     } else {
       player.queue.add(res.tracks[0]);
       await interaction.editReply({
-        embeds: [addedTrackEmbed(res.tracks[0])],
+        components: [addedTrackEmbed(res.tracks[0])],
         allowedMentions: NO_PING,
       });
     }

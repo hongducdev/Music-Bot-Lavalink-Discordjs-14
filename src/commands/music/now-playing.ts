@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, type EmbedBuilder } from "discord.js";
+import { SlashCommandBuilder } from "discord.js";
 import type { Player } from "lavalink-client";
 import type { Command } from "../../types/command.js";
 import {
@@ -7,6 +7,7 @@ import {
   embed,
   privateReplyAndCleanup,
   silentReplyAndCleanup,
+  type MessageContainerBuilder,
 } from "../../utils/embed.js";
 import {
   artworkUrl,
@@ -19,7 +20,7 @@ import {
 import { buildMusicController } from "../../music/controller.js";
 import { isAutoplayEnabled } from "../../music/autoplay.js";
 
-function buildNowPlayingEmbed(player: Player): EmbedBuilder {
+function buildNowPlayingEmbed(player: Player): MessageContainerBuilder {
   const current = player.queue.current!;
   const info = current.info;
 
@@ -37,18 +38,16 @@ function buildNowPlayingEmbed(player: Player): EmbedBuilder {
       }),
       inline: false,
     },
-    {
-      name: "⏱️ | Thời lượng",
-      value: `${formatDuration(player.position)} / ${formatTrackDuration(info.duration)}`,
-      inline: true,
-    },
-    { name: "🎵 | Kênh", value: info.author || "Không rõ", inline: true },
-    { name: "👌 | Yêu cầu bởi", value: requesterName(current.requester), inline: true }
+    { name: "👌 | Yêu cầu bởi", value: requesterName(current.requester), inline: false }
   );
 
+  // Kenh + thoi luong thuoc ve bai hat, de trong Section cho anh bia can deu thay vi lap lai o fields.
+  builder.setSectionNote(
+    `🎵 ${info.author || "Không rõ"} · ⏱️ ${formatDuration(player.position)} / ${formatTrackDuration(info.duration)}`
+  );
   builder.setFooter({ text: `${player.queue.tracks.length} bài trong hàng đợi` });
   const thumbnail = artworkUrl(info);
-  if (thumbnail) builder.setThumbnail(thumbnail);
+  if (thumbnail) builder.setThumbnail(thumbnail, `Ảnh bìa bài hát ${info.title}`);
   return builder;
 }
 

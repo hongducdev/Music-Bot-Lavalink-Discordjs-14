@@ -4,9 +4,8 @@ import {
   ButtonStyle,
   PermissionsBitField,
   type Client,
-  type EmbedBuilder,
 } from "discord.js";
-import { EMBED_COLORS, embed } from "./utils/embed.js";
+import { EMBED_COLORS, embed, type MessageContainerBuilder } from "./utils/embed.js";
 import { REQUIRED_TEXT_PERMISSIONS, REQUIRED_VOICE_PERMISSIONS } from "./utils/permissions.js";
 import { formatDuration } from "./utils/text.js";
 import { BOT_AUTHOR } from "./status.js";
@@ -66,7 +65,7 @@ export function buildBotInfoEmbed(
   client: Client,
   prefix: string,
   commandCount: number
-): EmbedBuilder {
+): MessageContainerBuilder {
   const bot = client.user;
   const guilds = client.guilds.cache.size;
   const members = client.guilds.cache.reduce((sum, guild) => sum + guild.memberCount, 0);
@@ -86,7 +85,7 @@ export function buildBotInfoEmbed(
   );
 
   const avatar = bot?.displayAvatarURL();
-  if (avatar) builder.setThumbnail(avatar);
+  if (avatar) builder.setThumbnail(avatar, `Ảnh đại diện của ${bot?.username ?? "MusicBot"}`);
   builder.setFooter({ text: `Ví dụ: ${prefix}play con cá con chim` });
   return builder;
 }

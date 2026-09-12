@@ -30,6 +30,7 @@ describe("shouldShowBotInfo", () => {
     expect(shouldShowBotInfo(mentions([BOT_ID], { roles: { size: 1 } }), BOT_ID)).toBe(false);
     expect(shouldShowBotInfo(mentions([], { roles: { size: 3 } }), BOT_ID)).toBe(false);
   });
+
 });
 
 describe("stripBotMention", () => {
