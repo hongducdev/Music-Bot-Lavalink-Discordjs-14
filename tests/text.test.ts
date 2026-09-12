@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  artworkUrl,
   clip,
   formatDuration,
   formatTrackDuration,
@@ -75,6 +76,29 @@ describe("trackLink", () => {
   it("falls back to a bare title without a uri", () => {
     expect(trackLink({ title: "Song" })).toBe("Song");
     expect(trackLink({ title: "Song", uri: null })).toBe("Song");
+  });
+});
+
+describe("artworkUrl", () => {
+  it("keeps the artwork Lavalink provides", () => {
+    expect(
+      artworkUrl({
+        identifier: "abc",
+        uri: "https://www.youtube.com/watch?v=abc",
+        artworkUrl: "https://i.ytimg.com/vi/abc/maxresdefault.jpg",
+      })
+    ).toBe("https://i.ytimg.com/vi/abc/maxresdefault.jpg");
+  });
+
+  it("builds a YouTube thumbnail when ytsearch returns no artwork", () => {
+    expect(
+      artworkUrl({ identifier: "BcgswlniO4U", uri: "https://www.youtube.com/watch?v=BcgswlniO4U" })
+    ).toBe("https://i.ytimg.com/vi/BcgswlniO4U/hqdefault.jpg");
+  });
+
+  it("returns null for non-YouTube tracks without artwork", () => {
+    expect(artworkUrl({ identifier: "123456", uri: "https://soundcloud.com/x/y" })).toBeNull();
+    expect(artworkUrl({})).toBeNull();
   });
 });
 

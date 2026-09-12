@@ -9,7 +9,7 @@ import {
   silentReply,
   silentReplyAndCleanup,
 } from "../../utils/embed.js";
-import { formatDuration, formatTrackDuration, trackLink } from "../../utils/text.js";
+import { artworkUrl, formatDuration, formatTrackDuration, trackLink } from "../../utils/text.js";
 
 const PREVIEW_LIMIT = 10;
 
@@ -45,7 +45,8 @@ function buildQueueEmbed(player: Player): EmbedBuilder {
   );
 
   builder.setFooter({ text: `${tracks.length} bài trong hàng đợi` });
-  if (current?.info.artworkUrl) builder.setThumbnail(current.info.artworkUrl);
+  const thumbnail = current ? artworkUrl(current.info) : null;
+  if (thumbnail) builder.setThumbnail(thumbnail);
   return builder;
 }
 

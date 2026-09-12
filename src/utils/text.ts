@@ -37,6 +37,22 @@ export function trackLink(info: TrackTextInfo): string {
   return info.uri ? `[${info.title}](${info.uri})` : info.title;
 }
 
+interface TrackArtInfo {
+  identifier?: string;
+  artworkUrl?: string | null;
+  uri?: string | null;
+}
+
+/**
+ * Anh bia bai hat. Lavalink tra artworkUrl rong voi ket qua `ytsearch`,
+ * nen lay thumbnail YouTube tu video id lam du phong.
+ */
+export function artworkUrl(info: TrackArtInfo): string | null {
+  if (info.artworkUrl) return info.artworkUrl;
+  if (!info.identifier || !/youtu\.?be/.test(info.uri ?? "")) return null;
+  return `https://i.ytimg.com/vi/${info.identifier}/hqdefault.jpg`;
+}
+
 /** Mention nguoi yeu cau phat bai hat, hoac username neu khong co id. */
 export function requesterName(requester?: unknown): string {
   const user = requester as { id?: string; username?: string } | null | undefined;

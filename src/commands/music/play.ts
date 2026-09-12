@@ -11,7 +11,7 @@ import {
   silentReply,
   silentReplyAndCleanup,
 } from "../../utils/embed.js";
-import { formatTrackDuration, requesterName, trackLink } from "../../utils/text.js";
+import { formatTrackDuration, requesterName, trackLink, artworkUrl } from "../../utils/text.js";
 import {
   REQUIRED_TEXT_PERMISSIONS,
   REQUIRED_VOICE_PERMISSIONS,
@@ -40,7 +40,8 @@ function addedTrackEmbed(track: AnyTrack) {
     { name: "👌 | Yêu cầu bởi", value: requesterName(track.requester), inline: true }
   );
 
-  if (info.artworkUrl) builder.setThumbnail(info.artworkUrl);
+  const thumbnail = artworkUrl(info);
+  if (thumbnail) builder.setThumbnail(thumbnail);
   return builder;
 }
 

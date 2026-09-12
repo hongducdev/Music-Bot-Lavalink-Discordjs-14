@@ -2,6 +2,7 @@ import { LavalinkManager, type Player, type Track, type UnresolvedTrack } from "
 import { MessageFlags, type APIEmbedField, type Client } from "discord.js";
 import { config } from "../config.js";
 import {
+  artworkUrl,
   formatTrackDuration,
   playerStatus,
   requesterName,
@@ -70,7 +71,7 @@ export function createLavalink(client: Client): LavalinkManager {
     notify(client, player.textChannelId, {
       description: `▶️ | Đang phát:\n> ${info ? trackLink(info) : "Không rõ"}`,
       author: "Now playing",
-      thumbnail: info?.artworkUrl,
+      thumbnail: info ? artworkUrl(info) : null,
       fields: [
         {
           name: "🔷 | Trạng thái",
@@ -201,7 +202,7 @@ async function retryWithFallback(
         notify(client, player.textChannelId, {
           description: `🔁 | YouTube chặn **${track!.info.title}**.\nĐã chuyển sang nguồn khác:\n> ${trackLink(next.info)}`,
           author: "Đổi nguồn phát",
-          thumbnail: next.info.artworkUrl,
+          thumbnail: artworkUrl(next.info),
           deleteAfterMs: DELETE_AFTER.error,
         });
         if (!player.playing) await player.play();

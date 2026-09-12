@@ -9,6 +9,7 @@ import {
   silentReplyAndCleanup,
 } from "../../utils/embed.js";
 import {
+  artworkUrl,
   formatDuration,
   formatTrackDuration,
   playerStatus,
@@ -45,7 +46,8 @@ function buildNowPlayingEmbed(player: Player): EmbedBuilder {
   );
 
   builder.setFooter({ text: `${player.queue.tracks.length} bài trong hàng đợi` });
-  if (info.artworkUrl) builder.setThumbnail(info.artworkUrl);
+  const thumbnail = artworkUrl(info);
+  if (thumbnail) builder.setThumbnail(thumbnail);
   return builder;
 }
 
