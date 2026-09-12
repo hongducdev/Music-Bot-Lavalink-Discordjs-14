@@ -182,7 +182,7 @@ async function queueRelatedTrack(
   for (const attempt of attempts) {
     if (!attempt.query) continue;
     try {
-      const res = await player.search(attempt, lastPlayedTrack.userData);
+      const res = await player.search(attempt, lastPlayedTrack.requester);
       const next = pickRelatedTrack<Track | UnresolvedTrack>(
         res.tracks,
         lastPlayedTrack.info.identifier,
@@ -211,7 +211,7 @@ async function retryWithFallback(
       const found = await firstMatch(
         FALLBACK_SOURCES,
         async (source): Promise<(Track | UnresolvedTrack)[]> => {
-          const res = await player.search({ query, source }, track?.userData);
+          const res = await player.search({ query, source }, track?.requester);
           return res.tracks;
         }
       );
