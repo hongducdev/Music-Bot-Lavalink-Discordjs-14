@@ -226,8 +226,44 @@ Khi YouTube từ chối stream, bot tự tìm bài tương tự trên SoundCloud
 
 #### Bật Spotify (khi có credential)
 1. Tạo app miễn phí tại https://developer.spotify.com/dashboard, lấy `Client ID` + `Client Secret`.
-2. Điền vào `lavalink/application.yml`, mục `plugins.lavasrc.spotify`, rồi đổi `plugins.lavasrc.sources.spotify` thành `true`.
+2. Điền `SPOTIFY_CLIENT_ID` + `SPOTIFY_CLIENT_SECRET` vào `.env` (**không** điền vào `lavalink/application.yml` vì file đó được commit — `application.yml` đọc sẵn hai biến này), rồi đổi `plugins.lavasrc.sources.spotify` thành `true`.
 3. Thêm `"spsearch"` vào đầu `FALLBACK_SOURCES` trong `src/music/fallback.ts`.
 
 Lưu ý: Lavalink **không phát được audio gốc của Spotify** (DRM). Spotify chỉ dùng để tìm kiếm/metadata; audio thật vẫn lấy qua chuỗi `providers` (`ytsearch` → `scsearch`).
+
+## 9. Quy ước commit message
+
+Mọi commit dùng **gitmoji + Conventional Commits + tiếng Anh**:
+
+```
+<gitmoji> <type>(<scope>): <mô tả ngắn>
+```
+
+| Gitmoji | Type | Dùng khi |
+|---|---|---|
+| ✨ | `feat` | thêm tính năng |
+| 🐛 | `fix` | sửa lỗi |
+| ✅ | `test` | thêm/sửa test |
+| 📝 | `docs` | chỉ sửa tài liệu |
+| ♻️ | `refactor` | đổi cấu trúc, không đổi hành vi |
+| ⚡ | `perf` | tối ưu hiệu năng |
+| 🔧 | `chore` | cấu hình, dependency |
+| 🚨 | `style` | format, lint |
+| 🔒 | `security` | vá bảo mật |
+
+Quy tắc:
+- Subject **≤ 72 ký tự**, thể mệnh lệnh ở hiện tại (`add`, không phải `added`), không có dấu chấm cuối.
+- Viết **tiếng Anh**. `scope` là mảng việc: `embeds`, `commands`, `status`, `lavalink`, `readme`…
+- Body (tuỳ chọn) là gạch đầu dòng, nói **vì sao** thay vì kể lại code.
+- **Chia nhỏ theo scope**, không gộp `feat` + `fix` + `docs` vào một commit. Sắp thứ tự sao cho commit sau chỉ phụ thuộc commit trước — `npx tsc --noEmit` phải sạch ở **từng** commit.
+- Không commit `.env` hoặc giá trị secret thật; quét `git diff --cached` trước khi commit.
+- Không thêm attribution của AI (`Generated with…`, `Co-Authored-By: …`).
+
+Ví dụ:
+
+```
+✨ feat(messages): restyle embeds and auto-delete noisy replies
+🐛 fix(lavalink): hint on 401 and keep start.ps1 errors visible
+📝 docs(readme): document help, auto-delete and lavalink auth fix
+```
 
