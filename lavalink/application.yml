@@ -1,8 +1,7 @@
-# Bản mẫu. Sao chép thành application.yml rồi điền giá trị thật:
-#   Copy-Item lavalink\application.example.yml lavalink\application.yml
 server:
-  port: 2333
-  address: 0.0.0.0
+  port: ${LAVALINK_PORT:2333}
+  # Chi nghe tren localhost, khong mo ra mang ngoai
+  address: 127.0.0.1
 
 lavalink:
   plugins:
@@ -11,8 +10,8 @@ lavalink:
     - dependency: "com.github.topi314.lavasrc:lavasrc-plugin:4.8.3"
       repository: "https://maven.lavalink.dev/releases"
   server:
-    # Phải khớp LAVALINK_PASSWORD trong .env
-    password: "youshallnotpass"
+    # Lay tu .env (chay Lavalink bang start.ps1 de nap bien moi truong)
+    password: "${LAVALINK_PASSWORD:youshallnotpass}"
     sources:
       youtube: false
       bandcamp: true
@@ -56,9 +55,8 @@ plugins:
       - MUSIC
     oauth:
       enabled: true
-      # Lavalink in refresh token ra terminal sau khi xác thực thành công.
-      # Dán vào đây (dùng tài khoản phụ, KHÔNG dùng tài khoản chính):
-      refreshToken: ""
+      # Lay tu YT_OAUTH_REFRESH_TOKEN trong .env (tai khoan phu!)
+      refreshToken: "${YT_OAUTH_REFRESH_TOKEN:}"
       skipInitialization: true
   lavasrc:
     providers:
@@ -78,18 +76,18 @@ plugins:
       ytdlp: true
       jiosaavn: false
     spotify:
-      # Bắt buộc để dùng được spsearch. Tạo app miễn phí tại:
-      # https://developer.spotify.com/dashboard
-      # Sau khi điền, đổi sources.spotify thành true.
-      clientId: ""
-      clientSecret: ""
+      # Lay tu SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET trong .env
+      # Tao app mien phi tai https://developer.spotify.com/dashboard
+      # Sau khi co, doi sources.spotify thanh true.
+      clientId: "${SPOTIFY_CLIENT_ID:}"
+      clientSecret: "${SPOTIFY_CLIENT_SECRET:}"
       countryCode: "VN"
       playlistLoadLimit: 6
       albumLoadLimit: 6
       resolveArtistsInSearch: true
       localFiles: false
     ytdlp:
-      # yt-dlp.exe không có trong git. Tải bằng:
+      # yt-dlp.exe khong co trong git:
       #   Invoke-WebRequest "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" -OutFile lavalink\yt-dlp.exe
       path: "./yt-dlp.exe"
       searchLimit: 10
@@ -101,7 +99,7 @@ logging:
     root: INFO
     lavalink: INFO
     dev.lavalink.youtube.http.YoutubeOauth2Handler: INFO
-    # Bật lại 3 dòng dưới khi cần chẩn đoán lỗi kết nối voice:
+    # Bat lai 3 dong duoi khi can chan doan loi ket noi voice:
     # lavalink.server.player: DEBUG
     # lavalink.server.io: DEBUG
     # com.sedmelluq.discord.lavaplayer: DEBUG

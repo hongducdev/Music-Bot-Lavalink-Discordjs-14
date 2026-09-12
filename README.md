@@ -21,29 +21,35 @@ Cập nhật các biến trong `.env`:
 - `CLIENT_ID`: Application ID của bot.
 - `GUILD_ID` (tuỳ chọn): deploy lệnh tức thì trong 1 server.
 - `PREFIX`: tiền tố lệnh text (mặc định `!`).
-- `LAVALINK_PASSWORD`: phải khớp `lavalink.server.password` trong `application.yml`.
+- `LAVALINK_PASSWORD`: mật khẩu Lavalink — **hãy đặt ngẫu nhiên**, đừng dùng `youshallnotpass`.
+- `YT_OAUTH_REFRESH_TOKEN`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET` (tuỳ chọn).
 
 ### File nào bị git bỏ qua?
-Các file chứa bí mật hoặc phụ thuộc máy — **không commit**, luôn có bản mẫu đi kèm:
+`.env` là **nơi duy nhất** chứa bí mật của dự án — đã bị git ignore, không bao giờ commit.
 
-| File thật (bị ignore) | Bản mẫu (được commit) |
+| File | Trạng thái |
 |---|---|
-| `.env` | `.env.example` |
-| `lavalink/application.yml` | `lavalink/application.example.yml` |
-| `lavalink/Lavalink.jar`, `lavalink/yt-dlp.exe` | — (tự tải, xem mục 3) |
-| `lavalink/plugins/`, `lavalink/logs/` | — (Lavalink tự tạo) |
+| `.env` | 🔒 bị ignore — chứa mọi secret |
+| `.env.example` | ✅ commit — bản mẫu |
+| `lavalink/application.yml` | ✅ commit — chỉ có `${BIẾN}`, **không chứa secret** |
+| `lavalink/Lavalink.jar`, `lavalink/yt-dlp.exe` | 🚫 ignore — tự tải, xem mục 3 |
+| `lavalink/plugins/`, `lavalink/logs/` | 🚫 ignore — Lavalink tự tạo |
+| `package.json`, `tsconfig.json`, `package-lock.json` | ✅ commit — giống nhau trên mọi máy |
 
-Các file cấu hình dự án như `package.json`, `tsconfig.json`, `package-lock.json` vẫn được commit vì giống nhau trên mọi máy.
+`lavalink/application.yml` đọc secret từ biến môi trường dạng `${LAVALINK_PASSWORD:...}`, nên an toàn để commit.
 
 ## 3. Chạy Lavalink độc lập (không Docker)
 
 1. Tải file `Lavalink.jar` (bản **4.2.2 trở lên** — bắt buộc, vì Discord yêu cầu giao thức voice DAVE) từ trang phát hành Lavalink.
-2. Tạo file `application.yml` từ bản mẫu (xem mục 2), điền `refreshToken` và credential nếu dùng.
-3. Khởi động server Lavalink bằng lệnh:
+2. **Khởi động bằng script** để secret từ `.env` được nạp:
 
-```bash
-java -jar Lavalink.jar
+```powershell
+.\lavalink\start.ps1
 ```
+
+> ⚠️ Đừng chạy `java -jar Lavalink.jar` trực tiếp — cách đó **không** nạp `.env`, Lavalink sẽ dùng mật khẩu mặc định và bot không kết nối được.
+>
+> Script cũng đặt `address: 127.0.0.1` nên Lavalink chỉ nghe trong máy, không lộ ra mạng ngoài.
 
 ### yt-dlp (engine chính cho YouTube)
 Lavalink dùng plugin LavaSrc + `yt-dlp.exe` để phát YouTube. File này **không có trong git**, phải tự tải:

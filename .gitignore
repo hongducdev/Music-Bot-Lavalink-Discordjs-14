@@ -1,12 +1,9 @@
 # ===== Bí mật / cấu hình riêng của máy =====
 # Mẫu tương ứng: .env.example
+# Chứa: Discord token, Lavalink password, YouTube OAuth refresh token, Spotify secret
 .env
 .env.local
 .env.*.local
-
-# Mẫu tương ứng: lavalink/application.example.yml
-# Chứa refresh token YouTube OAuth + clientId/clientSecret Spotify
-lavalink/application.yml
 
 # ===== Phụ thuộc & build =====
 node_modules/
