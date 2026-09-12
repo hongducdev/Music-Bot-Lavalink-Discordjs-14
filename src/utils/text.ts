@@ -1,5 +1,8 @@
 const DISCORD_LIMIT = 2000;
 
+/** Gia tri Lavalink/Java dung cho stream truc tiep (Long.MAX_VALUE). */
+const LIVE_SENTINEL = 9_223_372_036_854_775_807;
+
 /** Lay dong dau tien cua message, bo stack trace nhieu dong. */
 export function shortReason(message?: string | null): string {
   const firstLine = (message ?? "").split(/\r?\n/)[0].trim();
@@ -24,7 +27,10 @@ export function formatDuration(ms?: number | null): string {
 
 /** Thoi luong bai hat: 0 hoac thieu nghia la stream truc tiep. */
 export function formatTrackDuration(ms?: number | null): string {
-  return ms ? formatDuration(ms) : "Trực tiếp";
+  // Lavalink bao stream truc tiep bang Long.MAX_VALUE (9223372036854775807 ms),
+  // khong phai 0. Thieu check nay thi card hien "2562047788015:12:56".
+  if (!ms || ms >= LIVE_SENTINEL) return "Trực tiếp";
+  return formatDuration(ms);
 }
 
 interface TrackTextInfo {

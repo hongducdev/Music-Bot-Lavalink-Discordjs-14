@@ -61,6 +61,11 @@ describe("formatDuration", () => {
     expect(formatTrackDuration(59_000)).toBe("0:59");
   });
 
+  it("shows Trực tiếp for Lavalink's Long.MAX_VALUE live sentinel", () => {
+    // Loi tung ton tai: card Now playing hien "2562047788015:12:56".
+    expect(formatTrackDuration(9_223_372_036_854_775_807)).toBe("Trực tiếp");
+  });
+
   it("shows 0:00 for a position at the very start of a track", () => {
     expect(formatDuration(0)).toBe("0:00");
     expect(formatDuration(undefined)).toBe("0:00");

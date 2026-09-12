@@ -1,5 +1,6 @@
 import { SlashCommandBuilder } from "discord.js";
 import type { Command } from "../../types/command.js";
+import { clearActiveRadio } from "../../music/radio.js";
 import { EMBED_COLORS, embed, privateReplyAndCleanup, silentReply, silentReplyAndCleanup } from "../../utils/embed.js";
 
 const NO_PLAYER = "🚫 | Mình chưa phát nhạc ở server này.";
@@ -16,6 +17,7 @@ export const command: Command = {
       return;
     }
 
+    clearActiveRadio(interaction.guildId!);
     await player.destroy("User requested stop");
     await interaction.reply(silentReply(embed(STOPPED, EMBED_COLORS.default, "Stop")));
   },
@@ -26,6 +28,7 @@ export const command: Command = {
       return;
     }
 
+    clearActiveRadio(message.guildId!);
     await player.destroy("User requested stop");
     await message.reply(silentReply(embed(STOPPED, EMBED_COLORS.default, "Stop")));
   },

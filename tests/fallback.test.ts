@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   buildFallbackQuery,
+  isDirectStream,
   markAsFallback,
   shouldFallback,
 } from "../src/music/fallback.js";
@@ -33,6 +34,36 @@ describe("shouldFallback", () => {
   it("handles a missing track", () => {
     expect(shouldFallback(null)).toBe(false);
     expect(shouldFallback(undefined)).toBe(false);
+  });
+
+  it("never falls back for a direct-url stream (radio/HLS)", () => {
+    // Loi tung ton tai: dai radio loi -> search SoundCloud theo ten dai
+    // ("VOH FM 99.9 MHz Radio 24/7") -> phat mot bai hat ngau nhien.
+    expect(
+      shouldFallback({
+        info: { title: "VOH FM 99.9 MHz", author: "Radio 24/7", sourceName: "http" },
+      })
+    ).toBe(false);
+  });
+
+  it("still falls back for a normal youtube track", () => {
+    expect(
+      shouldFallback({ info: { title: "Faded", author: "Alan Walker", sourceName: "youtube" } })
+    ).toBe(true);
+  });
+});
+
+describe("isDirectStream", () => {
+  it("detects http and local sources", () => {
+    expect(isDirectStream({ info: { sourceName: "http" } })).toBe(true);
+    expect(isDirectStream({ info: { sourceName: "local" } })).toBe(true);
+  });
+
+  it("is false for searchable platforms and missing tracks", () => {
+    expect(isDirectStream({ info: { sourceName: "youtube" } })).toBe(false);
+    expect(isDirectStream({ info: { sourceName: "soundcloud" } })).toBe(false);
+    expect(isDirectStream(null)).toBe(false);
+    expect(isDirectStream(undefined)).toBe(false);
   });
 });
 

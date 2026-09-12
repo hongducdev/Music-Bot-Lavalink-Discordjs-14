@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { Client, GatewayIntentBits, Collection, Events } from "discord.js";
+import { Client, GatewayIntentBits, Collection, Events, MessageFlags } from "discord.js";
 import { config } from "./config.js";
 import { createLavalink } from "./music/player.js";
 import { loadCommands } from "./utils/command-loader.js";
@@ -20,6 +20,10 @@ import {
 } from "./utils/embed.js";
 import type { Command } from "./types/command.js";
 import { buildBotInfoEmbed, inviteButton, shouldShowBotInfo, stripBotMention } from "./bot-info.js";
+import { handleMusicController } from "./music/controller.js";
+import { RADIO_SELECT_ID, findRadioStation } from "./music/radio.js";
+import { playRadioStation } from "./commands/music/radio.js";
+import type { GuildMember } from "discord.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -74,6 +78,49 @@ client.once(Events.ClientReady, () => {
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
+  if (interaction.isButton()) {
+    try {
+      await handleMusicController(interaction);
+    } catch (error) {
+      console.error("[button] Error handling button interaction:", error);
+    }
+    return;
+  }
+
+  if (interaction.isStringSelectMenu() && interaction.customId === RADIO_SELECT_ID) {
+    const stationId = interaction.values[0];
+    const station = findRadioStation(stationId);
+    if (!station) {
+      await privateReplyAndCleanup(
+        interaction,
+        embed("⚠️ | Không tìm thấy kênh đài này.", EMBED_COLORS.error, "Radio")
+      );
+      return;
+    }
+
+    const member = interaction.member as GuildMember | null;
+    if (!member?.voice?.channel) {
+      await privateReplyAndCleanup(
+        interaction,
+        embed("🚫 | Bạn cần vào một kênh thoại trước đã!", EMBED_COLORS.error, "Radio")
+      );
+      return;
+    }
+
+    // Tim stream co the lau hon 3s -> phai defer truoc khi goi mang.
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+    const res = await playRadioStation(member, interaction.channel, station, interaction.client);
+    if (!res.success) {
+      await interaction.editReply({ embeds: [embed(res.message, EMBED_COLORS.error, "Radio")] });
+      deleteAfter(() => interaction.deleteReply(), DELETE_AFTER.error);
+      return;
+    }
+
+    await interaction.editReply({ embeds: [embed(res.message, EMBED_COLORS.default, "Radio")] });
+    return;
+  }
+
   if (!interaction.isChatInputCommand()) return;
 
   const command = commands.get(interaction.commandName);

@@ -12,6 +12,7 @@ import {
   silentReplyAndCleanup,
 } from "../../utils/embed.js";
 import { formatTrackDuration, requesterName, trackLink, artworkUrl } from "../../utils/text.js";
+import { clearActiveRadio } from "../../music/radio.js";
 import {
   REQUIRED_TEXT_PERMISSIONS,
   REQUIRED_VOICE_PERMISSIONS,
@@ -112,6 +113,8 @@ export const command: Command = {
     // /play tra loi rieng cho nguoi go lenh; thong bao cong khai do card "Now playing" dam nhiem.
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
+    clearActiveRadio(interaction.guildId!);
+
     const player =
       interaction.client.lavalink.getPlayer(interaction.guildId!) ||
       interaction.client.lavalink.createPlayer({
@@ -199,6 +202,8 @@ export const command: Command = {
       );
       return;
     }
+
+    clearActiveRadio(message.guildId!);
 
     const player =
       message.client.lavalink.getPlayer(message.guildId!) ||

@@ -16,6 +16,7 @@ import {
   requesterName,
   trackLink,
 } from "../../utils/text.js";
+import { buildMusicController } from "../../music/controller.js";
 import { isAutoplayEnabled } from "../../music/autoplay.js";
 
 function buildNowPlayingEmbed(player: Player): EmbedBuilder {
@@ -66,7 +67,12 @@ export const command: Command = {
       return;
     }
 
-    await privateReplyAndCleanup(interaction, buildNowPlayingEmbed(player), DELETE_AFTER.nowPlaying);
+    await privateReplyAndCleanup(
+      interaction,
+      buildNowPlayingEmbed(player),
+      DELETE_AFTER.nowPlaying,
+      [buildMusicController(player)]
+    );
   },
   async executeMessage(message) {
     const player = message.client.lavalink.getPlayer(message.guildId!);
@@ -78,6 +84,11 @@ export const command: Command = {
       return;
     }
 
-    await silentReplyAndCleanup(message, buildNowPlayingEmbed(player), DELETE_AFTER.nowPlaying);
+    await silentReplyAndCleanup(
+      message,
+      buildNowPlayingEmbed(player),
+      DELETE_AFTER.nowPlaying,
+      [buildMusicController(player)]
+    );
   },
 };

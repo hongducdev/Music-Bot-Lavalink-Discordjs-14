@@ -1,5 +1,11 @@
 import { LavalinkManager, type Player, type Track, type UnresolvedTrack } from "lavalink-client";
-import { MessageFlags, type APIEmbedField, type Client } from "discord.js";
+import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  MessageFlags,
+  type APIEmbedField,
+  type Client,
+} from "discord.js";
 import { config } from "../config.js";
 import {
   artworkUrl,
@@ -14,6 +20,7 @@ import {
   FALLBACK_SOURCES,
   buildFallbackQuery,
   firstMatch,
+  isDirectStream,
   markAsFallback,
   shouldFallback,
 } from "./fallback.js";
@@ -25,6 +32,14 @@ import {
   playedIdentifiers,
   rememberPlayed,
 } from "./autoplay.js";
+import { buildMusicController } from "./controller.js";
+import {
+  clearActiveRadio,
+  decideRadioEnd,
+  getActiveRadio,
+  markRadioStarted,
+  tagRadioTrack,
+} from "./radio.js";
 import { authErrorHint, isNodeAuthError } from "./node-error.js";
 
 declare module "discord.js" {
@@ -75,6 +90,7 @@ export function createLavalink(client: Client): LavalinkManager {
 
   lavalink.on("trackStart", (player, track) => {
     rememberPlayed(player.guildId, track?.info.identifier);
+    if (isDirectStream(track)) markRadioStarted(player.guildId);
     const info = track?.info;
     notify(client, player.textChannelId, {
       description: `▶️ | Đang phát:\n> ${info ? trackLink(info) : "Không rõ"}`,
@@ -95,6 +111,7 @@ export function createLavalink(client: Client): LavalinkManager {
         { name: "👌 | Yêu cầu bởi", value: requesterName(track?.requester), inline: true },
       ],
       footer: `${player.queue.tracks.length} bài trong hàng đợi`,
+      components: [buildMusicController(player)],
       deleteAfterMs: DELETE_AFTER.nowPlaying,
     });
   });
@@ -113,14 +130,55 @@ export function createLavalink(client: Client): LavalinkManager {
   });
 
   lavalink.on("queueEnd", (player) => {
-    notify(client, player.textChannelId, {
-      description: "⏹️ | Đã phát hết danh sách. Thêm bài mới bằng `/play` nhé!",
-      author: "Hết nhạc",
-      deleteAfterMs: DELETE_AFTER.error,
-    });
+    void handleQueueEnd(client, player);
   });
 
   return lavalink;
+}
+
+/**
+ * Hang doi het. Neu dang phat dai 24/7 thi tu phat lai thay vi de nguoi dung
+ * nhan "Het nhac" kho hieu — tru khi dai dut lien tuc qua nhieu lan.
+ */
+async function handleQueueEnd(client: Client, player: Player): Promise<void> {
+  const station = getActiveRadio(player.guildId);
+
+  if (station) {
+    const decision = decideRadioEnd(player.guildId);
+    if (decision.retry) {
+      try {
+        const res = await player.search({ query: station.query }, undefined);
+        const next = res.tracks[0];
+        if (next) {
+          tagRadioTrack(next, station);
+          player.queue.add(next, 0);
+          await player.play();
+          return;
+        }
+      } catch (error) {
+        console.error("[radio] Không phát lại được đài:", error);
+      }
+    }
+
+    // Het luot thu, hoac lan thu lai cung khong bat duoc luong -> bao ro. Luu y
+    // KHONG bao "Het nhac": nguoi dung vua xin phat dai 24/7, khong phai het bai.
+    clearActiveRadio(player.guildId);
+    notify(client, player.textChannelId, {
+      description:
+        `🚫 | Đài **${station.name}** không giữ được luồng phát.\n` +
+        "Thử đài khác bằng `/radio` nhé!",
+      author: "Đài lỗi",
+      color: EMBED_COLORS.error,
+      deleteAfterMs: DELETE_AFTER.error,
+    });
+    return;
+  }
+
+  notify(client, player.textChannelId, {
+    description: "⏹️ | Đã phát hết danh sách. Thêm bài mới bằng `/play` nhé!",
+    author: "Hết nhạc",
+    deleteAfterMs: DELETE_AFTER.error,
+  });
 }
 
 interface NotifyOptions {
@@ -130,6 +188,7 @@ interface NotifyOptions {
   thumbnail?: string | null;
   fields?: APIEmbedField[];
   footer?: string;
+  components?: ActionRowBuilder<ButtonBuilder>[];
   /** Tu xoa thong bao sau ms. Bo trong = giu lai. */
   deleteAfterMs?: number;
 }
@@ -151,6 +210,7 @@ function notify(
   channel
     .send({
       embeds: [builder],
+      ...(options.components?.length ? { components: options.components } : {}),
       // Thong bao cua bot khong bao gio ping ai: mention trong embed chi de hien thi.
       allowedMentions: NO_PING,
       flags: MessageFlags.SuppressNotifications,
@@ -168,7 +228,10 @@ async function queueRelatedTrack(
   player: Player,
   lastPlayedTrack: Track | UnresolvedTrack | null | undefined
 ): Promise<void> {
-  if (!lastPlayedTrack || !isAutoplayEnabled(player.guildId)) return;
+  // Dai radio 24/7 khong co metadata that: tim "bai lien quan" theo ten dai chi
+  // ra mot bai hat ngau nhien, lam card Now playing bi lap them lan nua.
+  if (!lastPlayedTrack || isDirectStream(lastPlayedTrack)) return;
+  if (!isAutoplayEnabled(player.guildId)) return;
 
   const played = playedIdentifiers(player.guildId);
 

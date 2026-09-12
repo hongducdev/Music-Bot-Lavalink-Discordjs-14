@@ -20,8 +20,18 @@ export async function firstMatch<S extends string, T>(
 }
 
 interface TrackLike {
-  info: { title?: string; author?: string | null };
+  info: { title?: string; author?: string | null; sourceName?: string };
   userData?: unknown;
+}
+
+/**
+ * Stream phat bang link truc tiep (dai radio HLS/m3u8).
+ * Loai nay khong co metadata that (title/author do minh tu gan) nen moi tro
+ * giup dua vao ten bai deu sai: search lai theo ten chi ra bai hat lung tung.
+ */
+export function isDirectStream(track?: TrackLike | null): boolean {
+  const source = track?.info?.sourceName;
+  return source === "http" || source === "local";
 }
 
 export function buildFallbackQuery(track: TrackLike): string {
@@ -30,9 +40,13 @@ export function buildFallbackQuery(track: TrackLike): string {
   return author ? `${title} ${author}` : title;
 }
 
-/** Chi thu fallback mot lan cho moi bai, tranh vong lap vo han. */
+/**
+ * Chi thu fallback mot lan cho moi bai, tranh vong lap vo han.
+ * Stream tu link truc tiep thi khong thay the duoc bang search theo ten.
+ */
 export function shouldFallback(track?: TrackLike | null): boolean {
-  return Boolean(track) && !(track?.userData as anyObject | undefined)?.fallback;
+  if (!track || isDirectStream(track)) return false;
+  return !(track.userData as anyObject | undefined)?.fallback;
 }
 
 export function markAsFallback(userData: unknown): anyObject {

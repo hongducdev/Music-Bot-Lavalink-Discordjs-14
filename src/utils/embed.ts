@@ -1,4 +1,6 @@
 import {
+  ActionRowBuilder,
+  ButtonBuilder,
   EmbedBuilder,
   MessageFlags,
   type APIAllowedMentions,
@@ -88,9 +90,14 @@ export function deleteAfter(remove: () => Promise<unknown>, ms: number): void {
 export async function privateReplyAndCleanup(
   interaction: RepliableInteraction,
   builder: EmbedBuilder,
-  ms: number = DELETE_AFTER.error
+  ms: number = DELETE_AFTER.error,
+  components?: ActionRowBuilder<ButtonBuilder>[]
 ): Promise<void> {
-  await interaction.reply(privateReply(builder));
+  const payload = {
+    ...privateReply(builder),
+    ...(components?.length ? { components } : {}),
+  };
+  await interaction.reply(payload);
   deleteAfter(() => interaction.deleteReply(), ms);
 }
 
@@ -98,8 +105,13 @@ export async function privateReplyAndCleanup(
 export async function silentReplyAndCleanup(
   message: Message,
   builder: EmbedBuilder,
-  ms: number = DELETE_AFTER.error
+  ms: number = DELETE_AFTER.error,
+  components?: ActionRowBuilder<ButtonBuilder>[]
 ): Promise<void> {
-  const sent = await message.reply(silentReply(builder));
+  const payload = {
+    ...silentReply(builder),
+    ...(components?.length ? { components } : {}),
+  };
+  const sent = await message.reply(payload);
   deleteAfter(() => sent.delete(), ms);
 }
