@@ -19,7 +19,7 @@ import {
   silentReplyAndCleanup,
 } from "./utils/embed.js";
 import type { Command } from "./types/command.js";
-import { buildBotInfoEmbed, shouldShowBotInfo, stripBotMention } from "./bot-info.js";
+import { buildBotInfoEmbed, inviteButton, shouldShowBotInfo, stripBotMention } from "./bot-info.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -101,7 +101,10 @@ client.on(Events.MessageCreate, async (message) => {
   const sendBotInfo = async (): Promise<void> => {
     if (!client.user) return;
     try {
-      await message.reply(silentReply(buildBotInfoEmbed(client, config.prefix, commands.size)));
+      await message.reply({
+        ...silentReply(buildBotInfoEmbed(client, config.prefix, commands.size)),
+        components: [inviteButton(client.user.id)],
+      });
     } catch (error) {
       console.error("[bot-info] Không trả lời được mention:", error);
     }

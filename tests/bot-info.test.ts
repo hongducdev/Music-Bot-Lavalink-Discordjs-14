@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import type { Client } from "discord.js";
-import { buildBotInfoEmbed, shouldShowBotInfo, stripBotMention, type MentionInfo } from "../src/bot-info.js";
+import { PermissionsBitField, type Client } from "discord.js";
+import { buildBotInfoEmbed, inviteButton, inviteUrl, shouldShowBotInfo, stripBotMention, type MentionInfo } from "../src/bot-info.js";
 
 const BOT_ID = "999";
 
@@ -57,7 +57,7 @@ describe("stripBotMention", () => {
 
 describe("buildBotInfoEmbed", () => {
   const client = {
-    user: { username: "MusicBot", displayAvatarURL: () => "https://cdn.test/avatar.png" },
+    user: { id: BOT_ID, username: "MusicBot", displayAvatarURL: () => "https://cdn.test/avatar.png" },
     ws: { ping: 42 },
     uptime: 3_723_000,
     guilds: {
@@ -81,10 +81,25 @@ describe("buildBotInfoEmbed", () => {
     expect(json.description).toContain("MusicBot");
     expect(json.description).toContain("11");
     expect(json.thumbnail?.url).toBe("https://cdn.test/avatar.png");
+    expect(json.footer?.text).toBe("Ví dụ: !play con cá con chim");
   });
 
   it("works before the client has a user", () => {
     const noUser = { ...client, user: null } as unknown as Client;
-    expect(buildBotInfoEmbed(noUser, "!", 1).toJSON().description).toContain("MusicBot");
+    const json = buildBotInfoEmbed(noUser, "!", 1).toJSON();
+    expect(json.description).toContain("MusicBot");
+    expect(json.footer?.text).toBe("Ví dụ: !play con cá con chim");
+  });
+
+  it("invites through the link button, not the footer", () => {
+    const needed = PermissionsBitField.resolve(["ViewChannel", "SendMessages", "EmbedLinks", "Connect", "Speak"]);
+    const url = `https://discord.com/oauth2/authorize?client_id=${BOT_ID}&scope=bot+applications.commands&permissions=${needed}`;
+    expect(needed & PermissionsBitField.Flags.Administrator).toBe(0n);
+    expect(inviteUrl(BOT_ID)).toBe(url);
+    expect(buildBotInfoEmbed(client, "!", 11).toJSON().footer?.text).not.toContain("http");
+    expect(inviteButton(BOT_ID).toJSON()).toEqual({
+      type: 1,
+      components: [{ type: 2, style: 5, label: "Mời bot", url }],
+    });
   });
 });

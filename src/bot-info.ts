@@ -1,7 +1,38 @@
-import type { Client, EmbedBuilder } from "discord.js";
+import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  PermissionsBitField,
+  type Client,
+  type EmbedBuilder,
+} from "discord.js";
 import { EMBED_COLORS, embed } from "./utils/embed.js";
+import { REQUIRED_TEXT_PERMISSIONS, REQUIRED_VOICE_PERMISSIONS } from "./utils/permissions.js";
 import { formatDuration } from "./utils/text.js";
 import { BOT_AUTHOR } from "./status.js";
+
+/** Quyen bot can de chay du tinh nang; khong xin Administrator. */
+const INVITE_PERMISSIONS = PermissionsBitField.resolve([
+  "ViewChannel",
+  ...REQUIRED_TEXT_PERMISSIONS,
+  ...REQUIRED_VOICE_PERMISSIONS,
+]);
+
+/** Link moi bot voi dung quyen can thiet, kem scope dang ky slash command. */
+export function inviteUrl(botId: string): string {
+  const url = new URL("https://discord.com/oauth2/authorize");
+  url.searchParams.set("client_id", botId);
+  url.searchParams.set("scope", "bot applications.commands");
+  url.searchParams.set("permissions", INVITE_PERMISSIONS.toString());
+  return url.toString();
+}
+
+/** Nut "Mời bot" duoi embed; nut Link khong can xu ly interaction. */
+export function inviteButton(botId: string): ActionRowBuilder<ButtonBuilder> {
+  return new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("Mời bot").setURL(inviteUrl(botId))
+  );
+}
 
 /** Phan `message.mentions` can thiet de quyet dinh co tra loi hay khong. */
 export interface MentionInfo {
