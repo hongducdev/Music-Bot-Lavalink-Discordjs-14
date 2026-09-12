@@ -119,10 +119,27 @@ Bot hỗ trợ cả **Slash Command** (`/`) và **Prefix Command** (mặc địn
 | Bài đang phát | `/nowplaying` | `!nowplaying` | `!np` |
 | Tự động phát | `/autoplay <bat>` | `!autoplay on\|off` | `!ap` |
 | Dừng & rời kênh | `/stop` | `!stop` | - |
-| Kiểm tra ping | `/ping` | `!ping` | `!p` |
+| Kiểm tra ping | `/ping` | `!ping` | - |
+| Trợ giúp | `/help [lenh]` | `!help [lenh]` | `!h` |
+
+> `/help` đọc thẳng danh sách lệnh đang nạp trong bot, nên **lệnh mới tự xuất hiện**, không cần sửa bảng này.
+> Mỗi lệnh đều có cả bản slash và prefix — prefix `!p` là của `play` (không còn trùng với `ping`).
 
 ### Autoplay
 Khi hàng đợi kết thúc, bot tự tìm bài liên quan (cùng ca sĩ/tên bài) trên YouTube Music và phát tiếp. **Mặc định BẬT**, tắt bằng `/autoplay bat:false` hoặc `!autoplay off`. Trạng thái lưu trong bộ nhớ — restart bot sẽ về mặc định BẬT.
+
+### Tin nhắn tự xoá
+Kênh chat không bị spam: bot tự xoá tin nhắn của chính nó sau một thời gian (khai báo ở `DELETE_AFTER` trong `src/utils/embed.ts`).
+
+| Loại tin nhắn | Tự xoá sau |
+|---|---|
+| Embed lỗi / cảnh báo (chưa vào voice, thiếu quyền, không có bài đang phát, không tìm thấy bài…) | 20 giây |
+| Thông báo hết nhạc, bài bị kẹt, phải đổi nguồn phát | 20 giây |
+| Card **Now playing** (bắn ra mỗi lần chuyển bài) | 2 phút |
+| `/nowplaying` và `!nowplaying` | 2 phút |
+| Xác nhận pause/resume/skip/stop/autoplay, `/queue`, `/help` | giữ lại |
+
+Bot chỉ xoá tin nhắn của chính nó, và lỗi khi xoá (bị xoá tay trước đó, mất quyền) được bỏ qua nên không làm sập bot.
 
 ## 8. Khắc phục sự cố
 
@@ -177,16 +194,18 @@ logging:
 ```
 
 Sau đó:
-1. Chạy `java -jar Lavalink.jar` trong terminal (phải thấy được log).
+1. Chạy Lavalink qua script để `.env` được nạp và log hiện ngay trên terminal:
+   ```powershell
+   .\lavalink\start.ps1
+   ```
+   > Đừng chạy `java -jar Lavalink.jar` trực tiếp ở bước này — sẽ mất `LAVALINK_PASSWORD` và bot báo lỗi 401.
 2. Terminal in ra `go to https://www.google.com/device and enter code XXXX-XXXX`.
 3. Mở link đó, nhập code, đăng nhập bằng **tài khoản phụ (burner), KHÔNG dùng tài khoản chính**.
-4. Sau khi xác thực, Lavalink in ra `refresh token` — dán vào `application.yml` để không phải xác thực lại:
-   ```yaml
-   oauth:
-     enabled: true
-     refreshToken: "token vua in ra"
-     skipInitialization: true
+4. Sau khi xác thực, Lavalink in ra `refresh token` — dán vào `.env` để không phải xác thực lại (**không** dán vào `application.yml` vì file đó được commit):
    ```
+   YT_OAUTH_REFRESH_TOKEN=token vua in ra
+   ```
+   `application.yml` đã đọc sẵn biến này qua `${YT_OAUTH_REFRESH_TOKEN:}`.
 
 ### Nguồn backup khi YouTube chặn
 Kiến trúc nguồn hiện tại:
