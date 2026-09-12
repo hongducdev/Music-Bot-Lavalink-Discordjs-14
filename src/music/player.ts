@@ -1,8 +1,14 @@
 import { LavalinkManager, type Player, type Track, type UnresolvedTrack } from "lavalink-client";
-import type { Client } from "discord.js";
+import { MessageFlags, type APIEmbedField, type Client } from "discord.js";
 import { config } from "../config.js";
-import { clip, shortReason } from "../utils/text.js";
-import { EMBED_COLORS, embed } from "../utils/embed.js";
+import {
+  formatTrackDuration,
+  playerStatus,
+  requesterName,
+  shortReason,
+  trackLink,
+} from "../utils/text.js";
+import { DELETE_AFTER, EMBED_COLORS, NO_PING, deleteAfter, embed } from "../utils/embed.js";
 import {
   FALLBACK_SOURCES,
   buildFallbackQuery,
@@ -11,6 +17,7 @@ import {
   shouldFallback,
 } from "./fallback.js";
 import { isAutoplayEnabled, pickRelatedTrack } from "./autoplay.js";
+import { authErrorHint, isNodeAuthError } from "./node-error.js";
 
 declare module "discord.js" {
   interface Client {
@@ -55,13 +62,31 @@ export function createLavalink(client: Client): LavalinkManager {
 
   lavalink.nodeManager.on("error", (node, error) => {
     console.error(`[Lavalink] Node ${node.id} error:`, error);
+    if (isNodeAuthError(error)) console.error(authErrorHint());
   });
 
   lavalink.on("trackStart", (player, track) => {
+    const info = track?.info;
     notify(client, player.textChannelId, {
-      description: `**${track?.info.title}**\n${track?.info.author ?? ""}`,
-      title: "🎶 Đang phát",
-      thumbnail: track?.info.artworkUrl,
+      description: `▶️ | Đang phát:\n> ${info ? trackLink(info) : "Không rõ"}`,
+      author: "Now playing",
+      thumbnail: info?.artworkUrl,
+      fields: [
+        {
+          name: "🔷 | Trạng thái",
+          value: playerStatus({
+            volume: player.volume,
+            paused: player.paused,
+            autoplay: isAutoplayEnabled(player.guildId),
+          }),
+          inline: false,
+        },
+        { name: "⏱️ | Thời lượng", value: formatTrackDuration(info?.duration), inline: true },
+        { name: "🎵 | Kênh", value: info?.author || "Không rõ", inline: true },
+        { name: "👌 | Yêu cầu bởi", value: requesterName(track?.requester), inline: true },
+      ],
+      footer: `${player.queue.tracks.length} bài trong hàng đợi`,
+      deleteAfterMs: DELETE_AFTER.nowPlaying,
     });
   });
 
@@ -72,16 +97,17 @@ export function createLavalink(client: Client): LavalinkManager {
 
   lavalink.on("trackStuck", (player, track) => {
     notify(client, player.textChannelId, {
-      description: `Bài **${track?.info.title}** bị kẹt, mình bỏ qua nhé.`,
-      title: "⚠️ Cảnh báo",
-      color: EMBED_COLORS.warning,
+      description: `⚠️ | Bài **${track?.info.title}** bị kẹt, mình bỏ qua nhé.`,
+      author: "Cảnh báo",
+      deleteAfterMs: DELETE_AFTER.error,
     });
   });
 
   lavalink.on("queueEnd", (player) => {
     notify(client, player.textChannelId, {
-      description: "Đã phát hết danh sách. Thêm bài mới bằng `/play` nhé!",
-      title: "⏹️ Hết nhạc",
+      description: "⏹️ | Đã phát hết danh sách. Thêm bài mới bằng `/play` nhé!",
+      author: "Hết nhạc",
+      deleteAfterMs: DELETE_AFTER.error,
     });
   });
 
@@ -90,9 +116,13 @@ export function createLavalink(client: Client): LavalinkManager {
 
 interface NotifyOptions {
   description: string;
-  title?: string;
+  author?: string;
   color?: number;
   thumbnail?: string | null;
+  fields?: APIEmbedField[];
+  footer?: string;
+  /** Tu xoa thong bao sau ms. Bo trong = giu lai. */
+  deleteAfterMs?: number;
 }
 
 function notify(
@@ -104,12 +134,24 @@ function notify(
   const channel = client.channels.cache.get(channelId);
   if (!channel?.isSendable()) return;
 
-  const builder = embed(options.description, options.color ?? EMBED_COLORS.info, options.title);
+  const builder = embed(options.description, options.color ?? EMBED_COLORS.default, options.author);
   if (options.thumbnail) builder.setThumbnail(options.thumbnail);
+  if (options.fields?.length) builder.addFields(options.fields);
+  if (options.footer) builder.setFooter({ text: options.footer });
 
-  channel.send({ embeds: [builder] }).catch((error: Error) => {
-    console.error("[notify] Không gửi được thông báo:", error.message);
-  });
+  channel
+    .send({
+      embeds: [builder],
+      // Thong bao cua bot khong bao gio ping ai: mention trong embed chi de hien thi.
+      allowedMentions: NO_PING,
+      flags: MessageFlags.SuppressNotifications,
+    })
+    .then((sent) => {
+      if (options.deleteAfterMs) deleteAfter(() => sent.delete(), options.deleteAfterMs);
+    })
+    .catch((error: Error) => {
+      console.error("[notify] Không gửi được thông báo:", error.message);
+    });
 }
 
 /** Het hang doi thi tu tim bai lien quan va them vao hang doi. */
@@ -157,10 +199,10 @@ async function retryWithFallback(
         next.userData = markAsFallback(next.userData);
         player.queue.add(next, 0);
         notify(client, player.textChannelId, {
-          description: `YouTube chặn **${track!.info.title}**.\nĐã chuyển sang nguồn khác: **${next.info.title}**`,
-          title: "🔁 Đổi nguồn phát",
-          color: EMBED_COLORS.warning,
+          description: `🔁 | YouTube chặn **${track!.info.title}**.\nĐã chuyển sang nguồn khác:\n> ${trackLink(next.info)}`,
+          author: "Đổi nguồn phát",
           thumbnail: next.info.artworkUrl,
+          deleteAfterMs: DELETE_AFTER.error,
         });
         if (!player.playing) await player.play();
         return;
@@ -168,16 +210,18 @@ async function retryWithFallback(
     }
 
     notify(client, player.textChannelId, {
-      description: `**${track?.info.title}**\n\nYouTube chặn stream nguồn này (${reason}). Thử video khác nhé!`,
-      title: "❌ Không phát được",
+      description: `🚫 | **${track?.info.title}**\n\nYouTube chặn stream nguồn này (${reason}). Thử video khác nhé!`,
+      author: "Không phát được",
       color: EMBED_COLORS.error,
+      deleteAfterMs: DELETE_AFTER.error,
     });
   } catch (error) {
     console.error("[fallback] Lỗi khi thử nguồn khác:", error);
     notify(client, player.textChannelId, {
-      description: `**${track?.info.title}**\n\nYouTube chặn stream nguồn này (${reason}).`,
-      title: "❌ Không phát được",
+      description: `🚫 | **${track?.info.title}**\n\nYouTube chặn stream nguồn này (${reason}).`,
+      author: "Không phát được",
       color: EMBED_COLORS.error,
+      deleteAfterMs: DELETE_AFTER.error,
     });
   }
 }

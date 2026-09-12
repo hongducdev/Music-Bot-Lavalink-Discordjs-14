@@ -1,8 +1,8 @@
-import { SlashCommandBuilder, MessageFlags } from "discord.js";
+import { SlashCommandBuilder } from "discord.js";
 import type { Command } from "../../types/command.js";
-import { EMBED_COLORS, embed } from "../../utils/embed.js";
+import { EMBED_COLORS, embed, privateReplyAndCleanup, silentReply, silentReplyAndCleanup } from "../../utils/embed.js";
 
-const NO_PLAYER = "Mình chưa phát nhạc ở server này. 😴";
+const NO_PLAYER = "🚫 | Mình chưa phát nhạc ở server này.";
 
 export const command: Command = {
   data: new SlashCommandBuilder()
@@ -11,43 +11,45 @@ export const command: Command = {
   async execute(interaction) {
     const player = interaction.client.lavalink.getPlayer(interaction.guildId!);
     if (!player) {
-      await interaction.reply({
-        flags: MessageFlags.Ephemeral,
-        embeds: [embed(NO_PLAYER, EMBED_COLORS.error)],
-      });
+      await privateReplyAndCleanup(interaction, embed(NO_PLAYER, EMBED_COLORS.error, "Pause"));
       return;
     }
 
     if (player.paused) {
-      await interaction.reply({
-        flags: MessageFlags.Ephemeral,
-        embeds: [embed("Bài hát đã đang tạm dừng rồi. ⏸️", EMBED_COLORS.warning)],
-      });
+      await privateReplyAndCleanup(
+        interaction,
+        embed("⚠️ | Bài hát đã đang tạm dừng rồi.", EMBED_COLORS.default, "Pause")
+      );
       return;
     }
 
     await player.pause();
-    await interaction.reply({
-      embeds: [embed("Đã tạm dừng nhạc. Dùng `/resume` để phát tiếp nhé! ⏸️", EMBED_COLORS.success, "⏸️ Đã tạm dừng")],
-    });
+    await interaction.reply(
+      silentReply(
+        embed("⏸️ | Đã tạm dừng nhạc. Dùng `/resume` để phát tiếp nhé!", EMBED_COLORS.default, "Pause")
+      )
+    );
   },
   async executeMessage(message) {
     const player = message.client.lavalink.getPlayer(message.guildId!);
     if (!player) {
-      await message.reply({ embeds: [embed(NO_PLAYER, EMBED_COLORS.error)] });
+      await silentReplyAndCleanup(message, embed(NO_PLAYER, EMBED_COLORS.error, "Pause"));
       return;
     }
 
     if (player.paused) {
-      await message.reply({
-        embeds: [embed("Bài hát đã đang tạm dừng rồi. ⏸️", EMBED_COLORS.warning)],
-      });
+      await silentReplyAndCleanup(
+        message,
+        embed("⚠️ | Bài hát đã đang tạm dừng rồi.", EMBED_COLORS.default, "Pause")
+      );
       return;
     }
 
     await player.pause();
-    await message.reply({
-      embeds: [embed("Đã tạm dừng nhạc. Dùng `!resume` để phát tiếp nhé! ⏸️", EMBED_COLORS.success, "⏸️ Đã tạm dừng")],
-    });
+    await message.reply(
+      silentReply(
+        embed("⏸️ | Đã tạm dừng nhạc. Dùng `!resume` để phát tiếp nhé!", EMBED_COLORS.default, "Pause")
+      )
+    );
   },
 };

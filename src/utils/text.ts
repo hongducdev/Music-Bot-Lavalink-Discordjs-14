@@ -10,3 +10,48 @@ export function shortReason(message?: string | null): string {
 export function clip(content: string, limit: number = DISCORD_LIMIT): string {
   return content.length <= limit ? content : `${content.slice(0, limit - 3)}...`;
 }
+
+/** Dinh dang mili-giay thanh m:ss hoac h:mm:ss. */
+export function formatDuration(ms?: number | null): string {
+  const total = Math.floor(Math.max(ms ?? 0, 0) / 1000);
+  const seconds = String(total % 60).padStart(2, "0");
+  const minutes = Math.floor(total / 60) % 60;
+  const hours = Math.floor(total / 3600);
+
+  if (hours) return `${hours}:${String(minutes).padStart(2, "0")}:${seconds}`;
+  return `${minutes}:${seconds}`;
+}
+
+/** Thoi luong bai hat: 0 hoac thieu nghia la stream truc tiep. */
+export function formatTrackDuration(ms?: number | null): string {
+  return ms ? formatDuration(ms) : "Trực tiếp";
+}
+
+interface TrackTextInfo {
+  title: string;
+  uri?: string | null;
+}
+
+/** Link markdown toi bai hat, hoac chi ten neu thieu uri. */
+export function trackLink(info: TrackTextInfo): string {
+  return info.uri ? `[${info.title}](${info.uri})` : info.title;
+}
+
+/** Mention nguoi yeu cau phat bai hat, hoac username neu khong co id. */
+export function requesterName(requester?: unknown): string {
+  const user = requester as { id?: string; username?: string } | null | undefined;
+  if (user?.id) return `<@${user.id}>`;
+  return user?.username ?? "Không rõ";
+}
+
+/** Dong trang thai cua player, giong `status(queue)` ben repo tham khao. */
+export function playerStatus(state: {
+  volume: number;
+  paused: boolean;
+  autoplay: boolean;
+}): string {
+  return (
+    `Âm lượng: \`${state.volume}%\` | Tạm dừng: \`${state.paused ? "Có" : "Không"}\`` +
+    ` | Autoplay: \`${state.autoplay ? "Bật" : "Tắt"}\``
+  );
+}

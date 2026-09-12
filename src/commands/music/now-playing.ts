@@ -1,18 +1,51 @@
-import { SlashCommandBuilder, MessageFlags, type EmbedBuilder } from "discord.js";
+import { SlashCommandBuilder, type EmbedBuilder } from "discord.js";
 import type { Player } from "lavalink-client";
 import type { Command } from "../../types/command.js";
-import { EMBED_COLORS, embed } from "../../utils/embed.js";
+import {
+  DELETE_AFTER,
+  EMBED_COLORS,
+  embed,
+  privateReplyAndCleanup,
+  silentReplyAndCleanup,
+} from "../../utils/embed.js";
+import {
+  formatDuration,
+  formatTrackDuration,
+  playerStatus,
+  requesterName,
+  trackLink,
+} from "../../utils/text.js";
+import { isAutoplayEnabled } from "../../music/autoplay.js";
 
 function buildNowPlayingEmbed(player: Player): EmbedBuilder {
   const current = player.queue.current!;
+  const info = current.info;
 
   const builder = embed(
-    `**${current.info.title}**\n👤 ${current.info.author || "Không rõ"}\n🔗 [Mở bài hát](${current.info.uri})`,
-    EMBED_COLORS.success,
-    "🎧 Đang phát"
+    `▶️ | Đang phát:\n> ${trackLink(info)}`,
+    EMBED_COLORS.default,
+    "Now playing"
+  ).addFields(
+    {
+      name: "🔷 | Trạng thái",
+      value: playerStatus({
+        volume: player.volume,
+        paused: player.paused,
+        autoplay: isAutoplayEnabled(player.guildId),
+      }),
+      inline: false,
+    },
+    {
+      name: "⏱️ | Thời lượng",
+      value: `${formatDuration(player.position)} / ${formatTrackDuration(info.duration)}`,
+      inline: true,
+    },
+    { name: "🎵 | Kênh", value: info.author || "Không rõ", inline: true },
+    { name: "👌 | Yêu cầu bởi", value: requesterName(current.requester), inline: true }
   );
 
-  if (current.info.artworkUrl) builder.setThumbnail(current.info.artworkUrl);
+  builder.setFooter({ text: `${player.queue.tracks.length} bài trong hàng đợi` });
+  if (info.artworkUrl) builder.setThumbnail(info.artworkUrl);
   return builder;
 }
 
@@ -24,27 +57,25 @@ export const command: Command = {
   async execute(interaction) {
     const player = interaction.client.lavalink.getPlayer(interaction.guildId!);
     if (!player?.queue.current) {
-      await interaction.reply({
-        flags: MessageFlags.Ephemeral,
-        embeds: [embed("Hiện không có bài nào đang phát. 🔇", EMBED_COLORS.error)],
-      });
+      await privateReplyAndCleanup(
+        interaction,
+        embed("🚫 | Hiện không có bài nào đang phát.", EMBED_COLORS.error, "Now playing")
+      );
       return;
     }
 
-    await interaction.reply({
-      flags: MessageFlags.Ephemeral,
-      embeds: [buildNowPlayingEmbed(player)],
-    });
+    await privateReplyAndCleanup(interaction, buildNowPlayingEmbed(player), DELETE_AFTER.nowPlaying);
   },
   async executeMessage(message) {
     const player = message.client.lavalink.getPlayer(message.guildId!);
     if (!player?.queue.current) {
-      await message.reply({
-        embeds: [embed("Hiện không có bài nào đang phát. 🔇", EMBED_COLORS.error)],
-      });
+      await silentReplyAndCleanup(
+        message,
+        embed("🚫 | Hiện không có bài nào đang phát.", EMBED_COLORS.error, "Now playing")
+      );
       return;
     }
 
-    await message.reply({ embeds: [buildNowPlayingEmbed(player)] });
+    await silentReplyAndCleanup(message, buildNowPlayingEmbed(player), DELETE_AFTER.nowPlaying);
   },
 };

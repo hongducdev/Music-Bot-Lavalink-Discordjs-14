@@ -1,17 +1,54 @@
 import { SlashCommandBuilder, MessageFlags, type GuildMember } from "discord.js";
+import type { Track, UnresolvedTrack } from "lavalink-client";
 import type { Command } from "../../types/command.js";
-import { EMBED_COLORS, embed } from "../../utils/embed.js";
+import {
+  DELETE_AFTER,
+  EMBED_COLORS,
+  NO_PING,
+  embed,
+  deleteAfter,
+  privateReplyAndCleanup,
+  silentReply,
+  silentReplyAndCleanup,
+} from "../../utils/embed.js";
+import { formatTrackDuration, requesterName, trackLink } from "../../utils/text.js";
 import {
   REQUIRED_TEXT_PERMISSIONS,
   REQUIRED_VOICE_PERMISSIONS,
   missingChannelPermissions,
 } from "../../utils/permissions.js";
 
+export type AnyTrack = Track | UnresolvedTrack;
+
 function missingPermissionEmbed(scope: string, names: string[]) {
   return embed(
-    `Mình thiếu quyền sau ở ${scope}:\n${names.map((name) => `• ${name}`).join("\n")}`,
+    `🚫 | Mình thiếu quyền sau ở ${scope}:\n${names.map((name) => `• ${name}`).join("\n")}`,
     EMBED_COLORS.error,
-    "🚫 Thiếu quyền"
+    "Thiếu quyền"
+  );
+}
+
+function addedTrackEmbed(track: AnyTrack) {
+  const info = track.info;
+  const builder = embed(
+    `✅ | Đã thêm vào hàng đợi:\n> ${trackLink(info)}`,
+    EMBED_COLORS.default,
+    "Thêm vào hàng đợi"
+  ).addFields(
+    { name: "⏱️ | Thời lượng", value: formatTrackDuration(info.duration), inline: true },
+    { name: "🎵 | Kênh", value: info.author || "Không rõ", inline: true },
+    { name: "👌 | Yêu cầu bởi", value: requesterName(track.requester), inline: true }
+  );
+
+  if (info.artworkUrl) builder.setThumbnail(info.artworkUrl);
+  return builder;
+}
+
+function addedPlaylistEmbed(count: number, title: string) {
+  return embed(
+    `📥 | Đã thêm **${count}** bài vào hàng đợi:\n> ${title}`,
+    EMBED_COLORS.default,
+    "Thêm playlist vào hàng đợi"
   );
 }
 
@@ -31,19 +68,19 @@ export const command: Command = {
     const voiceChannel = member?.voice.channel;
 
     if (!voiceChannel) {
-      await interaction.reply({
-        flags: MessageFlags.Ephemeral,
-        embeds: [embed("Bạn cần vào một kênh thoại trước đã! 🔊", EMBED_COLORS.error, "Chưa vào voice")],
-      });
+      await privateReplyAndCleanup(
+        interaction,
+        embed("🚫 | Bạn cần vào một kênh thoại trước đã!", EMBED_COLORS.error, "Play")
+      );
       return;
     }
 
     const query = interaction.options.getString("query");
     if (!query) {
-      await interaction.reply({
-        flags: MessageFlags.Ephemeral,
-        embeds: [embed("Vui lòng nhập tên bài hát hoặc link nhé! ✍️", EMBED_COLORS.error)],
-      });
+      await privateReplyAndCleanup(
+        interaction,
+        embed("✍️ | Vui lòng nhập tên bài hát hoặc link nhé!", EMBED_COLORS.error, "Play")
+      );
       return;
     }
 
@@ -54,10 +91,10 @@ export const command: Command = {
       botMember
     );
     if (missingVoice.length) {
-      await interaction.reply({
-        flags: MessageFlags.Ephemeral,
-        embeds: [missingPermissionEmbed(`kênh thoại **${voiceChannel.name}**`, missingVoice)],
-      });
+      await privateReplyAndCleanup(
+        interaction,
+        missingPermissionEmbed(`kênh thoại **${voiceChannel.name}**`, missingVoice)
+      );
       return;
     }
 
@@ -67,14 +104,12 @@ export const command: Command = {
         ? missingChannelPermissions(REQUIRED_TEXT_PERMISSIONS, textChannel, botMember)
         : [];
     if (missingText.length) {
-      await interaction.reply({
-        flags: MessageFlags.Ephemeral,
-        embeds: [missingPermissionEmbed("kênh chat này", missingText)],
-      });
+      await privateReplyAndCleanup(interaction, missingPermissionEmbed("kênh chat này", missingText));
       return;
     }
 
-    await interaction.deferReply();
+    // /play tra loi rieng cho nguoi go lenh; thong bao cong khai do card "Now playing" dam nhiem.
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const player =
       interaction.client.lavalink.getPlayer(interaction.guildId!) ||
@@ -93,32 +128,24 @@ export const command: Command = {
 
     if (!res.tracks.length) {
       await interaction.editReply({
-        embeds: [embed(`Không tìm thấy bài nào cho **${query}** 😕`, EMBED_COLORS.error, "Không có kết quả")],
+        embeds: [embed(`😕 | Không tìm thấy bài nào cho **${query}**.`, EMBED_COLORS.error, "Play")],
+        allowedMentions: NO_PING,
       });
+      deleteAfter(() => interaction.deleteReply(), DELETE_AFTER.error);
       return;
     }
 
     if (res.loadType === "playlist") {
       player.queue.add(res.tracks);
       await interaction.editReply({
-        embeds: [
-          embed(
-            `Đã thêm **${res.tracks.length}** bài vào hàng đợi 📥`,
-            EMBED_COLORS.success,
-            `📚 ${res.playlist?.title || "Playlist"}`
-          ),
-        ],
+        embeds: [addedPlaylistEmbed(res.tracks.length, res.playlist?.title || "Playlist")],
+        allowedMentions: NO_PING,
       });
     } else {
       player.queue.add(res.tracks[0]);
       await interaction.editReply({
-        embeds: [
-          embed(
-            `**${res.tracks[0].info.title}**\n${res.tracks[0].info.author ?? ""}`,
-            EMBED_COLORS.success,
-            "✅ Đã thêm vào hàng đợi"
-          ).setThumbnail(res.tracks[0].info.artworkUrl || null),
-        ],
+        embeds: [addedTrackEmbed(res.tracks[0])],
+        allowedMentions: NO_PING,
       });
     }
 
@@ -130,19 +157,23 @@ export const command: Command = {
     const voiceChannel = message.member?.voice.channel;
 
     if (!voiceChannel) {
-      await message.reply({
-        embeds: [embed("Bạn cần vào một kênh thoại trước đã! 🔊", EMBED_COLORS.error, "Chưa vào voice")],
-      });
+      await silentReplyAndCleanup(
+        message,
+        embed("🚫 | Bạn cần vào một kênh thoại trước đã!", EMBED_COLORS.error, "Play")
+      );
       return;
     }
 
     const query = args.join(" ").trim();
     if (!query) {
-      await message.reply({
-        embeds: [
-          embed("Vui lòng nhập tên bài hát hoặc link! Ví dụ: `!play faded` ✍️", EMBED_COLORS.error),
-        ],
-      });
+      await silentReplyAndCleanup(
+        message,
+        embed(
+          "✍️ | Vui lòng nhập tên bài hát hoặc link! Ví dụ: `!play faded`",
+          EMBED_COLORS.error,
+          "Play"
+        )
+      );
       return;
     }
 
@@ -159,13 +190,12 @@ export const command: Command = {
     );
 
     if (missingVoice.length || missingText.length) {
-      await message.reply({
-        embeds: [
-          missingVoice.length
-            ? missingPermissionEmbed(`kênh thoại **${voiceChannel.name}**`, missingVoice)
-            : missingPermissionEmbed("kênh chat này", missingText),
-        ],
-      });
+      await silentReplyAndCleanup(
+        message,
+        missingVoice.length
+          ? missingPermissionEmbed(`kênh thoại **${voiceChannel.name}**`, missingVoice)
+          : missingPermissionEmbed("kênh chat này", missingText)
+      );
       return;
     }
 
@@ -185,34 +215,21 @@ export const command: Command = {
     const res = await player.search({ query }, message.author);
 
     if (!res.tracks.length) {
-      await message.reply({
-        embeds: [embed(`Không tìm thấy bài nào cho **${query}** 😕`, EMBED_COLORS.error, "Không có kết quả")],
-      });
+      await silentReplyAndCleanup(
+        message,
+        embed(`😕 | Không tìm thấy bài nào cho **${query}**.`, EMBED_COLORS.error, "Play")
+      );
       return;
     }
 
     if (res.loadType === "playlist") {
       player.queue.add(res.tracks);
-      await message.reply({
-        embeds: [
-          embed(
-            `Đã thêm **${res.tracks.length}** bài vào hàng đợi 📥`,
-            EMBED_COLORS.success,
-            `📚 ${res.playlist?.title || "Playlist"}`
-          ),
-        ],
-      });
+      await message.reply(
+        silentReply(addedPlaylistEmbed(res.tracks.length, res.playlist?.title || "Playlist"))
+      );
     } else {
       player.queue.add(res.tracks[0]);
-      await message.reply({
-        embeds: [
-          embed(
-            `**${res.tracks[0].info.title}**\n${res.tracks[0].info.author ?? ""}`,
-            EMBED_COLORS.success,
-            "✅ Đã thêm vào hàng đợi"
-          ).setThumbnail(res.tracks[0].info.artworkUrl || null),
-        ],
-      });
+      await message.reply(silentReply(addedTrackEmbed(res.tracks[0])));
     }
 
     if (!player.playing) {
