@@ -7,116 +7,68 @@
 ![Java 17+](https://img.shields.io/badge/Java-17%2B-ED8B00?logo=openjdk&logoColor=white)
 ![tests: vitest](https://img.shields.io/badge/tests-vitest-6E9F18?logo=vitest&logoColor=white)
 
-Bot Discord nghe nhạc bằng TypeScript, dùng **discord.js v14** và **Lavalink v4** (hỗ trợ phát nhạc từ YouTube qua Lavalink source).
+Bot nhạc cho Discord viết bằng TypeScript: **discord.js v14** + **Lavalink v4**, phát YouTube qua LavaSrc/yt-dlp. Dùng được cả slash command (`/`), prefix (`!`) và ping thẳng bot (`@Bot <lệnh>`).
 
-## 1. 📦 Yêu cầu hệ thống
+## 📦 Yêu cầu
 
 - Node.js 22+
-- Java 17+ (để chạy Lavalink v4 độc lập)
-- Token bot Discord và Application ID từ Discord Developer Portal
+- Java 17+ (chạy Lavalink v4 độc lập)
+- Token bot + Application ID từ Discord Developer Portal
 
-## 2. 🚀 Cài đặt
+## 🚀 Cài đặt
 
 ```bash
 npm install
 cp .env.example .env
-cp lavalink/application.example.yml lavalink/application.yml
 ```
 
-Cập nhật các biến trong `.env`:
-- `DISCORD_TOKEN`: Token bot Discord.
-- `CLIENT_ID`: Application ID của bot.
-- `GUILD_ID` (tuỳ chọn): deploy lệnh tức thì trong 1 server.
-- `PREFIX`: tiền tố lệnh text (mặc định `!`).
-- `LAVALINK_PASSWORD`: mật khẩu Lavalink — **hãy đặt ngẫu nhiên**, đừng dùng `youshallnotpass`.
-- `YT_OAUTH_REFRESH_TOKEN`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET` (tuỳ chọn).
+`.env` là **nơi duy nhất** chứa secret của dự án — đã bị git ignore, không bao giờ commit.
 
-### File nào bị git bỏ qua?
-`.env` là **nơi duy nhất** chứa bí mật của dự án — đã bị git ignore, không bao giờ commit.
-
-| File | Trạng thái |
+| Biến | Ý nghĩa |
 |---|---|
-| `.env` | 🔒 bị ignore — chứa mọi secret |
-| `.env.example` | ✅ commit — bản mẫu |
-| `lavalink/application.yml` | ✅ commit — chỉ có `${BIẾN}`, **không chứa secret** |
-| `lavalink/Lavalink.jar`, `lavalink/yt-dlp.exe` | 🚫 ignore — tự tải, xem mục 3 |
-| `lavalink/plugins/`, `lavalink/logs/` | 🚫 ignore — Lavalink tự tạo |
-| `package.json`, `tsconfig.json`, `package-lock.json` | ✅ commit — giống nhau trên mọi máy |
+| `DISCORD_TOKEN` | Token bot |
+| `CLIENT_ID` | Application ID |
+| `LAVALINK_PASSWORD` | Mật khẩu Lavalink — **đặt ngẫu nhiên**, đừng dùng `youshallnotpass` |
+| `GUILD_ID` | (tuỳ chọn) deploy slash command tức thì trong 1 server |
+| `PREFIX` | (tuỳ chọn) tiền tố lệnh text, mặc định `!` |
+| `RPC_*` | (tuỳ chọn) Rich Presence — xem mục “RPC trên profile người nghe” bên dưới |
+| `YT_OAUTH_REFRESH_TOKEN`, `SPOTIFY_*` | (tuỳ chọn) xem [docs/troubleshooting.md](docs/troubleshooting.md) |
 
-`lavalink/application.yml` đọc secret từ biến môi trường dạng `${LAVALINK_PASSWORD:...}`, nên an toàn để commit.
+`lavalink/application.yml` được commit vì chỉ đọc `${BIẾN}`, không chứa secret. Riêng `Lavalink.jar`, `yt-dlp.exe`, `lavalink/plugins/`, `lavalink/logs/` bị ignore — tự tải/tự tạo ở mục dưới.
 
-## 3. 🎧 Chạy Lavalink độc lập (không Docker)
+## 🎧 Chạy Lavalink (không Docker)
 
-1. Tải file `Lavalink.jar` (bản **4.2.2 trở lên** — bắt buộc, vì Discord yêu cầu giao thức voice DAVE) từ trang phát hành Lavalink.
-2. **Khởi động bằng script** để secret từ `.env` được nạp:
+1. Tải `Lavalink.jar` bản **4.2.2 trở lên** (bắt buộc — Discord yêu cầu giao thức voice DAVE).
+2. Khởi động bằng script để secret từ `.env` được nạp:
 
-```powershell
-.\lavalink\start.ps1
-```
+   ```powershell
+   .\lavalink\start.ps1
+   ```
 
-> ⚠️ Đừng chạy `java -jar Lavalink.jar` trực tiếp — cách đó **không** nạp `.env`, Lavalink sẽ dùng mật khẩu mặc định và bot không kết nối được.
->
-> Script cũng đặt `address: 127.0.0.1` nên Lavalink chỉ nghe trong máy, không lộ ra mạng ngoài.
+   > Đừng chạy `java -jar Lavalink.jar` trực tiếp — cách đó không nạp `.env` nên Lavalink dùng mật khẩu mặc định và bot báo 401. Script cũng chỉ cho Lavalink nghe ở `127.0.0.1`.
 
-### yt-dlp (engine chính cho YouTube)
-Lavalink dùng plugin LavaSrc + `yt-dlp.exe` để phát YouTube. File này **không có trong git**, phải tự tải:
+3. Tải `yt-dlp` (engine chính để phát YouTube, không có trong git) và cập nhật định kỳ khi YouTube đổi cơ chế:
 
-```powershell
-Invoke-WebRequest "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" -OutFile lavalink\yt-dlp.exe
-```
+   ```powershell
+   Invoke-WebRequest "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" -OutFile lavalink\yt-dlp.exe
+   .\lavalink\yt-dlp.exe -U
+   ```
 
-Yt-dlp phải được cập nhật định kỳ khi YouTube đổi cơ chế:
-
-```powershell
-.\lavalink\yt-dlp.exe -U
-```
-
-## 4. ⚙️ Deploy slash command
-
-Đăng ký danh sách lệnh Slash lên Discord:
+## ▶️ Deploy & chạy
 
 ```bash
-npm run deploy
+npm run deploy               # đăng ký slash command
+npm run dev                  # dev (tự nạp TS)
+npm run build && npm start   # production
+npm test                     # unit test (vitest)
 ```
 
-Mặc định deploy **toàn cục** (Discord có thể mất tới 1 giờ mới hiển thị). Muốn cập nhật **tức thì** trong một server, thêm `GUILD_ID` vào `.env`:
+- `npm run deploy` mặc định deploy toàn cục (có thể mất tới 1 giờ mới hiện). Thêm `GUILD_ID` vào `.env` để có hiệu lực ngay, và script in ra **link mời bot kèm đủ quyền** ở cuối.
+- Bot cần: **Xem kênh, Gửi tin nhắn, Nhúng liên kết** (kênh chat) + **Kết nối, Nói** (kênh thoại). Thiếu quyền thì `/play` báo rõ tên quyền còn thiếu. Ping bot cũng có nút **Mời bot** với đúng bộ quyền đó.
 
-```env
-GUILD_ID=123456789012345678
-```
+## 🎮 Danh sách lệnh
 
-Script cũng in ra **link mời bot kèm đủ quyền** ở cuối — dùng link đó để mời bot thay vì tự chọn quyền.
-
-### Quyền bot cần
-| Phạm vi | Quyền |
-|---|---|
-| Kênh chat | Xem kênh, Gửi tin nhắn, Nhúng liên kết |
-| Kênh thoại | Kết nối, Nói |
-
-Nếu thiếu quyền, `/play` sẽ báo rõ tên quyền còn thiếu thay vì im lặng.
-
-## 5. ▶️ Chạy bot
-
-```bash
-# Môi trường dev (tự nạp TS)
-npm run dev
-
-# Build và chạy production
-npm run build
-npm start
-```
-
-## 6. 🧪 Chạy unit test
-
-```bash
-npm test
-```
-
-## 7. 🎮 Danh sách lệnh
-
-Bot hỗ trợ cả **Slash Command** (`/`), **Prefix Command** (`!`, đổi bằng biến `PREFIX` trong `.env`) và **ping thẳng bot** (`@TênBot <lệnh>`):
-
-| Chức năng | Slash Command | Prefix Command | Viết tắt (Alias) |
+| Chức năng | Slash Command | Prefix Command | Viết tắt |
 |---|---|---|---|
 | Phát nhạc | `/play <query>` | `!play <query>` | `!p <query>` |
 | Tạm dừng | `/pause` | `!pause` | - |
@@ -128,156 +80,52 @@ Bot hỗ trợ cả **Slash Command** (`/`), **Prefix Command** (`!`, đổi b�
 | Dừng & rời kênh | `/stop` | `!stop` | - |
 | Kiểm tra ping | `/ping` | `!ping` | - |
 | Trợ giúp | `/help [lenh]` | `!help [lenh]` | `!h` |
-| RPC trên profile | `/rpc connect\|status\|disconnect` | `!rpc connect\|status\|disconnect` | - |
+| RPC trên profile | `/rpc connect\|status\|disconnect` | `!rpc …` | - |
 
-> `/help` đọc thẳng danh sách lệnh đang nạp trong bot, nên **lệnh mới tự xuất hiện**, không cần sửa bảng này.
-> Mỗi lệnh đều có cả bản slash và prefix — prefix `!p` là của `play` (không còn trùng với `ping`).
+> `/help` đọc thẳng danh sách lệnh đang nạp trong bot nên lệnh mới tự xuất hiện, không cần sửa bảng này.
+
+## ✨ Tính năng
 
 ### Ping bot
-Gõ `@TênBot` (ping trực tiếp, không kèm gì) để bot trả lời thẻ thông tin: ping, thời gian hoạt động, số server/thành viên, prefix, tác giả.
 
-Ping bot cũng thay được cho prefix: `@TênBot play con cá con chim` tương đương `!play con cá con chim`. Ping kèm tên lệnh sai cũng trả về thẻ thông tin để người dùng biết đường.
+Gõ `@Bot` (ping trực tiếp, không kèm gì) để nhận thẻ thông tin: ping, thời gian hoạt động, số server/thành viên, prefix, tác giả — kèm nút **Mời bot**.
 
-Bot **bỏ qua** `@everyone`, `@here` và ping role — nên không bắn thẻ này vào mọi tin nhắn. Tin nhắn có prefix (`!play …`) luôn được xử lý như lệnh trước, không bị thẻ thông tin “cướp”.
+Ping bot thay được cho prefix (`@Bot play con cá con chim` = `!play con cá con chim`); ping kèm tên lệnh sai cũng trả về thẻ thông tin. Bot **bỏ qua** `@everyone`, `@here` và ping role, và ưu tiên xử lý tin nhắn có prefix như lệnh bình thường.
 
 ### Autoplay
-Khi hàng đợi kết thúc, bot tự lấy danh sách **mix (RD)** của bài vừa phát trên YouTube — đây là danh sách bài liên quan thật sự, đa dạng — rồi chọn ngẫu nhiên một bài **chưa phát gần đây**. Nếu mix lỗi hoặc rỗng, bot lùi về tìm theo tên kênh (nghệ sĩ) trên YouTube Music. Bot nhớ 30 bài gần nhất mỗi server nên autoplay không lặp lại bài cũ. **Mặc định BẬT**, tắt bằng `/autoplay bat:false` hoặc `!autoplay off`. Trạng thái lưu trong bộ nhớ — restart bot sẽ về mặc định BẬT.
+
+Hết hàng đợi, bot lấy danh sách **mix (RD)** của bài vừa phát trên YouTube rồi chọn ngẫu nhiên một bài **chưa phát gần đây**; mix lỗi hoặc rỗng thì lùi về tìm theo tên kênh (nghệ sĩ) trên YouTube Music. Bot nhớ 30 bài gần nhất mỗi server nên không lặp bài cũ. **Mặc định BẬT**; tắt bằng `/autoplay bat:false` hoặc `!autoplay off`. Trạng thái chỉ trong bộ nhớ — restart bot sẽ về mặc định BẬT.
 
 ### RPC trên profile người nghe
 
-Người dùng chạy `/rpc connect`, mở link riêng tư và cấp quyền bằng **đúng tài khoản gọi lệnh**.
-Ai đã liên kết mà đang ngồi cùng kênh voice với bot sẽ thấy Rich Presence của bài đang phát; người yêu cầu bài cũng thấy dù không ở trong voice.
-Rich Presence gồm tên bot hiện tại, tên bài, nghệ sĩ, thời gian và nút mở bài hát.
-`!rpc connect` gửi link qua DM; nếu chặn DM, dùng slash command. Link hết hạn sau 5 phút.
+Người dùng chạy `/rpc connect`, mở link riêng tư và cấp quyền bằng **đúng tài khoản gọi lệnh** (link hết hạn sau 5 phút; `!rpc connect` gửi link qua DM). Ai đã liên kết và đang ngồi cùng kênh voice với bot sẽ thấy Rich Presence của bài đang phát — tên bot hiện tại, tên bài, nghệ sĩ, thời gian và nút mở bài hát; người yêu cầu bài cũng thấy dù không ở trong voice.
 
 Thiết lập một lần cho chủ bot:
 
-1. Mở application có ID bằng `CLIENT_ID` trong Discord Developer Portal, bật Social SDK và OAuth2 **Public Client**.
-2. Đăng ký Redirect URL và đặt cùng giá trị vào `.env`:
+1. Mở application có ID bằng `CLIENT_ID`, bật **Social SDK** và OAuth2 **Public Client**.
+2. Đăng ký Redirect URL, rồi điền cùng giá trị vào `.env`: `RPC_REDIRECT_URI`, `RPC_HOST` (mặc định `127.0.0.1`), `RPC_PORT` (mặc định `8787`).
+3. Reverse proxy HTTPS của domain đó về `http://127.0.0.1:8787`. Callback phải mở được từ trình duyệt **của người cấp quyền** — `http://127.0.0.1:8787/callback` chỉ tự thử được trên máy chạy bot. Không ghi query string callback vào access log (chứa authorization code).
+4. Chạy `npm run deploy` rồi khởi động lại bot. Không cần client secret hay token tài khoản cá nhân.
 
-   ```env
-   RPC_REDIRECT_URI=https://your-domain.example/callback
-   RPC_HOST=127.0.0.1
-   RPC_PORT=8787
-   ```
+Scope dùng là `openid sdk.social_layer_presence` ([tài liệu Social SDK](https://docs.discord.com/developers/discord-social-sdk/core-concepts/oauth2-scopes)); mã gateway tham khảo [Discord-OAuth2-RPC](https://github.com/aiko-chan-ai/Discord-OAuth2-RPC/tree/07ea5a6dc707b529a1eef5f3343224a40d1bcb42) — tích hợp PoC, Discord chưa bảo đảm hỗ trợ lâu dài.
 
-3. Reverse proxy HTTPS của domain đó tới `http://127.0.0.1:8787`. Callback phải truy cập được từ trình duyệt của người cấp quyền. Không ghi query string callback vào access log vì chứa authorization code.
-   Tự thử trên máy chạy bot có thể dùng `http://127.0.0.1:8787/callback` và đăng ký Redirect tương ứng; **localhost của người khác không trỏ tới máy bot**.
-4. Chạy `npm run deploy` để đăng ký `/rpc`, rồi khởi động lại bot. Không cần client secret hay token tài khoản Discord cá nhân.
-
-Scope dùng là `openid sdk.social_layer_presence`, theo [tài liệu Social SDK](https://docs.discord.com/developers/discord-social-sdk/core-concepts/oauth2-scopes).
-Mã giao tiếp Gateway tham khảo [Discord-OAuth2-RPC](https://github.com/aiko-chan-ai/Discord-OAuth2-RPC/tree/07ea5a6dc707b529a1eef5f3343224a40d1bcb42); đây là tích hợp PoC với Gateway Gaming SDK, chưa phải bảo đảm hỗ trợ lâu dài của Discord.
-
-- `/rpc status` kiểm tra kết nối; `/rpc disconnect` đóng phiên và xóa dữ liệu liên kết trong bot. Thu hồi quyền ứng dụng hoàn toàn tại Discord → Authorized Apps.
-- Pause bỏ timer đang chạy; resume cập nhật lại. Hết bài, stop, bot rời voice hoặc người nghe rời kênh voice sẽ xóa RPC cũ. Các cập nhật được gộp, có thể trễ khoảng 4 giây.
-- Autoplay và nguồn fallback giữ requester của bài trước. Nếu cùng một người phát ở nhiều server, bài bắt đầu gần nhất được ưu tiên.
-- Token chỉ giữ trong RAM, không ghi file/database; không refresh hoặc tự reconnect. Restart bot, token hết hạn hay Gateway ngắt kết nối thì chạy `/rpc connect` lại.
-- Nếu chưa cấp quyền, nhạc vẫn phát bình thường. Bỏ trống `RPC_REDIRECT_URI` để tắt tính năng.
-- Kiểm thử tự động xác nhận logic và kết nối WebSocket cục bộ; cần thử OAuth và profile thực tế bằng application đã bật Social SDK. Nếu không thấy activity, kiểm tra quyền ứng dụng và cài đặt chia sẻ hoạt động của người dùng.
+- `/rpc status` kiểm tra kết nối, `/rpc disconnect` xoá phiên trong bot; thu hồi quyền tại Discord → Authorized Apps.
+- Hết bài, stop, bot rời voice hoặc người nghe rời kênh sẽ xoá RPC cũ; cập nhật được gộp nên có thể trễ ~4 giây.
+- Token chỉ giữ trong RAM, không refresh/reconnect — restart bot hoặc token hết hạn thì `/rpc connect` lại.
+- Bỏ trống `RPC_REDIRECT_URI` để tắt; chưa cấp quyền thì nhạc vẫn phát bình thường.
 
 ### Tin nhắn tự xoá
-Kênh chat không bị spam: bot tự xoá tin nhắn của chính nó sau một thời gian (khai báo ở `DELETE_AFTER` trong `src/utils/embed.ts`).
 
-| Loại tin nhắn | Tự xoá sau |
-|---|---|
-| Embed lỗi / cảnh báo (chưa vào voice, thiếu quyền, không có bài đang phát, không tìm thấy bài…) | 20 giây |
-| Thông báo hết nhạc, bài bị kẹt, phải đổi nguồn phát | 20 giây |
-| Card **Now playing** (bắn ra mỗi lần chuyển bài) | 2 phút |
-| `/nowplaying` và `!nowplaying` | 2 phút |
-| Xác nhận pause/resume/skip/stop/autoplay, `/queue`, `/help`, thẻ thông tin khi ping bot | giữ lại |
+Bot chỉ tự xoá tin nhắn **của chính nó** (khai báo ở `DELETE_AFTER`, `src/utils/embed.ts`): lỗi/cảnh báo và thông báo hết nhạc sau **20 giây**, card now-playing và `nowplaying` sau **2 phút**; các xác nhận lệnh, `/queue`, `/help` và thẻ thông tin khi ping bot được giữ lại. Lỗi khi xoá (bị xoá tay, mất quyền) được bỏ qua nên không làm sập bot.
 
-Bot chỉ xoá tin nhắn của chính nó, và lỗi khi xoá (bị xoá tay trước đó, mất quyền) được bỏ qua nên không làm sập bot.
+## 🔧 Khắc phục sự cố
 
-## 8. 🔧 Khắc phục sự cố
+Chi tiết đầy đủ — test stream, danh sách client, OAuth YouTube, nguồn backup, Spotify — ở [docs/troubleshooting.md](docs/troubleshooting.md).
 
-### Bot báo "Đang phát" nhưng không có tiếng
-Bot sẽ tự báo lỗi trong kênh chat khi stream fail. Nếu vẫn cần xem chi tiết, log ở:
-
-```powershell
-Get-Content lavalink\logs\spring.log -Tail 60
-```
-
-#### Bước 0 — Xác định lỗi nằm ở hệ thống hay ở riêng video
-Route `/youtube/stream/{videoId}` trả về audio stream thật, dùng để test nhanh **không cần kết nối voice**:
-
-```powershell
-$h=@{Authorization='youshallnotpass'}
-Invoke-WebRequest "http://localhost:2333/youtube/stream/dQw4w9WgXcQ?withClient=ANDROID_VR" -Headers $h | Select-Object StatusCode,RawContentLength
-```
-
-- **200 + dung lượng vài MB** → hệ thống OK, lỗi là do riêng video đó bị YouTube giới hạn → thử video khác.
-- **400/500** → lỗi hệ thống, làm tiếp các bước dưới.
-
-> Lưu ý: test liên tục nhiều video sẽ bị YouTube rate-limit (mọi request đều trả 500 trong vài phút). Nghỉ 1-2 phút rồi test lại.
-
-#### Bước 1 — Kiểm tra danh sách client
-`MUSIC` **chỉ tìm kiếm, không phát được**. Chỉ client `TV` hỗ trợ OAuth. Danh sách đúng trong `application.yml`:
-```yaml
-clients:
-  - TV
-  - TVHTML5_SIMPLY
-  - ANDROID_VR
-  - WEBEMBEDDED
-  - WEB
-  - MUSIC
-```
-
-#### Bước 2 — Nâng cấp plugin
-Lỗi `Something went wrong while looking up the track` thường do plugin cũ. Luôn dùng bản mới nhất:
-`dev.lavalink.youtube:youtube-plugin:<version mới nhất>`.
-
-#### Bước 3 — Bật OAuth (khi gặp lỗi bot-detection)
-Nếu log có `Sign in to confirm you're not a bot` / `This video requires login` / `No supported audio streams available`, YouTube đang chặn IP/datacenter. OAuth là cách xử lý theo tài liệu chính thức:
-
-```yaml
-plugins:
-  youtube:
-    oauth:
-      enabled: true
-
-logging:
-  level:
-    dev.lavalink.youtube.http.YoutubeOauth2Handler: INFO
-```
-
-Sau đó:
-1. Chạy Lavalink qua script để `.env` được nạp và log hiện ngay trên terminal:
-   ```powershell
-   .\lavalink\start.ps1
-   ```
-   > Đừng chạy `java -jar Lavalink.jar` trực tiếp ở bước này — sẽ mất `LAVALINK_PASSWORD` và bot báo lỗi 401.
-2. Terminal in ra `go to https://www.google.com/device and enter code XXXX-XXXX`.
-3. Mở link đó, nhập code, đăng nhập bằng **tài khoản phụ (burner), KHÔNG dùng tài khoản chính**.
-4. Sau khi xác thực, Lavalink in ra `refresh token` — dán vào `.env` để không phải xác thực lại (**không** dán vào `application.yml` vì file đó được commit):
-   ```
-   YT_OAUTH_REFRESH_TOKEN=token vua in ra
-   ```
-   `application.yml` đã đọc sẵn biến này qua `${YT_OAUTH_REFRESH_TOKEN:}`.
-
-### Nguồn backup khi YouTube chặn
-Kiến trúc nguồn hiện tại:
-
-| Nguồn | Prefix | Trạng thái |
-|---|---|---|
-| YouTube (qua **yt-dlp** của LavaSrc) | `ytsearch:` | ✅ engine chính, xử lý cả `ytsearch:` lẫn URL YouTube |
-| SoundCloud | `scsearch` | ✅ backup đầu tiên |
-| Spotify | `spsearch` | ⏸ cần `clientId`/`clientSecret` — xem bên dưới |
-| Plugin YouTube (OAuth/TV client) | — | còn giữ làm lớp dự phòng khi lúc **load**, nhưng bị yt-dlp che khuất |
-
-Khi YouTube từ chối stream, bot tự tìm bài tương tự trên SoundCloud và phát tiếp, đồng thời báo trong kênh:
-`YouTube chan **<bài gốc>**. Da chuyen sang nguon khac: **<bài mới>**`
-
-- Nguồn backup nằm trong `FALLBACK_SOURCES` (`src/music/fallback.ts`), thử lần lượt theo thứ tự, dừng ở nguồn đầu tiên có kết quả; nguồn lỗi hoặc rỗng thì bỏ qua.
-- Mỗi bài chỉ thử backup **một lần** (chống lặp vô hạn).
-- Tìm bằng tay: `!play scsearch:<tên bài>`.
-
-#### Bật Spotify (khi có credential)
-1. Tạo app miễn phí tại https://developer.spotify.com/dashboard, lấy `Client ID` + `Client Secret`.
-2. Điền `SPOTIFY_CLIENT_ID` + `SPOTIFY_CLIENT_SECRET` vào `.env` (**không** điền vào `lavalink/application.yml` vì file đó được commit — `application.yml` đọc sẵn hai biến này), rồi đổi `plugins.lavasrc.sources.spotify` thành `true`.
-3. Thêm `"spsearch"` vào đầu `FALLBACK_SOURCES` trong `src/music/fallback.ts`.
-
-Lưu ý: Lavalink **không phát được audio gốc của Spotify** (DRM). Spotify chỉ dùng để tìm kiếm/metadata; audio thật vẫn lấy qua chuỗi `providers` (`ytsearch` → `scsearch`).
+- Log Lavalink: `Get-Content lavalink\logs\spring.log -Tail 60`
+- `Sign in to confirm you're not a bot` → bật OAuth trong `application.yml`, xác thực bằng **tài khoản phụ**, dán refresh token vào `.env`.
+- YouTube từ chối stream → bot tự tìm bài tương tự trên SoundCloud và báo trong kênh.
 
 ---
 
-Quy ước commit message và checklist trước khi commit: xem [CONTRIBUTING.md](CONTRIBUTING.md).
+Quy ước commit message và checklist trước khi commit: [CONTRIBUTING.md](CONTRIBUTING.md).
