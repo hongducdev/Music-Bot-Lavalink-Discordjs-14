@@ -1,0 +1,8 @@
+# Chuẩn hoá line ending: lưu LF trong repo, tránh diff nhiễu giữa Windows/Linux
+* text=auto eol=lf
+
+# File nhị phân
+*.jar binary
+*.exe binary
+*.png binary
+*.jpg binary

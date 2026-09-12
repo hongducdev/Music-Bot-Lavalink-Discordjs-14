@@ -1,0 +1,107 @@
+# Bản mẫu. Sao chép thành application.yml rồi điền giá trị thật:
+#   Copy-Item lavalink\application.example.yml lavalink\application.yml
+server:
+  port: 2333
+  address: 0.0.0.0
+
+lavalink:
+  plugins:
+    - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.2"
+      repository: "https://maven.lavalink.dev/releases"
+    - dependency: "com.github.topi314.lavasrc:lavasrc-plugin:4.8.3"
+      repository: "https://maven.lavalink.dev/releases"
+  server:
+    # Phải khớp LAVALINK_PASSWORD trong .env
+    password: "youshallnotpass"
+    sources:
+      youtube: false
+      bandcamp: true
+      soundcloud: true
+      twitch: true
+      vimeo: true
+      http: true
+      local: false
+    filters:
+      volume: true
+      equalizer: true
+      karaoke: true
+      timescale: true
+      tremolo: true
+      vibrato: true
+      distortion: true
+      rotation: true
+      channelMix: true
+      lowPass: true
+    bufferDurationMs: 400
+    frameBufferDurationMs: 5000
+    opusEncodingQuality: 10
+    resamplingQuality: LOW
+    trackStuckThresholdMs: 10000
+    useSeekGhosting: true
+    playerUpdateInterval: 5
+    youtubePlaylistLoadLimit: 6
+
+plugins:
+  youtube:
+    enabled: true
+    allowSearch: true
+    allowDirectVideoIds: true
+    allowDirectPlaylistIds: true
+    clients:
+      - TV
+      - TVHTML5_SIMPLY
+      - ANDROID_VR
+      - WEBEMBEDDED
+      - WEB
+      - MUSIC
+    oauth:
+      enabled: true
+      # Lavalink in refresh token ra terminal sau khi xác thực thành công.
+      # Dán vào đây (dùng tài khoản phụ, KHÔNG dùng tài khoản chính):
+      refreshToken: ""
+      skipInitialization: true
+  lavasrc:
+    providers:
+      - "ytsearch:\"%ISRC%\""
+      - "ytsearch:%QUERY%"
+      - "scsearch:%QUERY%"
+    sources:
+      spotify: false
+      applemusic: false
+      deezer: false
+      yandexmusic: false
+      flowerytts: false
+      youtube: false
+      vkmusic: false
+      tidal: false
+      qobuz: false
+      ytdlp: true
+      jiosaavn: false
+    spotify:
+      # Bắt buộc để dùng được spsearch. Tạo app miễn phí tại:
+      # https://developer.spotify.com/dashboard
+      # Sau khi điền, đổi sources.spotify thành true.
+      clientId: ""
+      clientSecret: ""
+      countryCode: "VN"
+      playlistLoadLimit: 6
+      albumLoadLimit: 6
+      resolveArtistsInSearch: true
+      localFiles: false
+    ytdlp:
+      # yt-dlp.exe không có trong git. Tải bằng:
+      #   Invoke-WebRequest "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" -OutFile lavalink\yt-dlp.exe
+      path: "./yt-dlp.exe"
+      searchLimit: 10
+
+logging:
+  file:
+    path: ./logs
+  level:
+    root: INFO
+    lavalink: INFO
+    dev.lavalink.youtube.http.YoutubeOauth2Handler: INFO
+    # Bật lại 3 dòng dưới khi cần chẩn đoán lỗi kết nối voice:
+    # lavalink.server.player: DEBUG
+    # lavalink.server.io: DEBUG
+    # com.sedmelluq.discord.lavaplayer: DEBUG

@@ -1,0 +1,30 @@
+# ===== Bí mật / cấu hình riêng của máy =====
+# Mẫu tương ứng: .env.example
+.env
+.env.local
+.env.*.local
+
+# Mẫu tương ứng: lavalink/application.example.yml
+# Chứa refresh token YouTube OAuth + clientId/clientSecret Spotify
+lavalink/application.yml
+
+# ===== Phụ thuộc & build =====
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# ===== Lavalink: file tải về, không commit =====
+lavalink/*.jar
+lavalink/*.jar.bak
+lavalink/yt-dlp.exe
+lavalink/plugins/
+lavalink/logs/
+lavalink/out.log
+lavalink/err.log
+
+# ===== Log & file tạm =====
+*.log
+npm-debug.log*
+.tmp/
+.tmp-*
