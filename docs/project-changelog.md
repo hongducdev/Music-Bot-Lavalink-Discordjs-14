@@ -13,6 +13,7 @@
 ### Fixed
 
 - Autoplay/fallback now pass the track requester to Lavalink search, preserving attribution for RPC.
+- Bot info now appears **only on a real ping**. Replying to a bot message no longer triggers it: Discord puts the author of the message being replied to into `message.mentions.users` even when the message text contains no ping, so the gate now also requires `message.mentions.parsedUsers` (ping tokens actually present in the content). See `shouldShowBotInfo` in `src/bot-info.ts`.
 - Bot info card was being sent without its content: the reply payload spread `silentReply(card)` and then overwrote the `components` key with the invite button, dropping the whole container. Now passes the button through `silentReply(card, [button])`.
 
 ### Changed

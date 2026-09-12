@@ -1,13 +1,19 @@
 import { describe, it, expect } from "vitest";
-import { PermissionsBitField, type Client } from "discord.js";
+import { Collection, MessageMentions, PermissionsBitField, type Client } from "discord.js";
 import { buildBotInfoEmbed, inviteButton, inviteUrl, shouldShowBotInfo, stripBotMention, type MentionInfo } from "../src/bot-info.js";
 
 const BOT_ID = "999";
 
-const mentions = (ids: string[], extra: Partial<MentionInfo> = {}): MentionInfo => ({
+const mentions = (
+  ids: string[],
+  extra: Partial<MentionInfo> = {},
+  /** Mac dinh: moi user trong `mentions` deu den tu token ping trong noi dung. */
+  parsedIds: string[] = ids
+): MentionInfo => ({
   everyone: false,
   roles: { size: 0 },
   users: { has: (id: string) => ids.includes(id) },
+  parsedUsers: { has: (id: string) => parsedIds.includes(id) },
   ...extra,
 });
 
@@ -31,6 +37,61 @@ describe("shouldShowBotInfo", () => {
     expect(shouldShowBotInfo(mentions([], { roles: { size: 3 } }), BOT_ID)).toBe(false);
   });
 
+  it("stays quiet when the bot is only mentioned because someone replied to it", () => {
+    // Reply lam Discord tu them tac gia tin nhan duoc reply vao `mentions.users`,
+    // nhung noi dung nguoi dung go khong he chua token ping nao.
+    expect(shouldShowBotInfo(mentions([BOT_ID], {}, []), BOT_ID)).toBe(false);
+  });
+
+  it("still answers when the ping is actually written in the content", () => {
+    expect(shouldShowBotInfo(mentions([BOT_ID], {}, [BOT_ID]), BOT_ID)).toBe(true);
+  });
+
+  it("does not answer a reply to the bot when someone else is pinged in the text", () => {
+    expect(shouldShowBotInfo(mentions([BOT_ID, "123"], {}, ["123"]), BOT_ID)).toBe(false);
+  });
+
+  /**
+   * Guard cho gia dinh cot loi cua fix: `mentions.users` THAT SU gom tac gia tin nhan duoc
+   * reply, con `mentions.parsedUsers` thi khong. Test nay dung lop that cua discord.js thay vi
+   * mock, de neu discord.js doi ngu nghia thi no vo ngay tai day.
+   */
+  it("relies on real MessageMentions: replied author lands in users but not parsedUsers", () => {
+    const BOT = "999000000000000001";
+    const cache = new Collection<string, { id: string; username: string }>([
+      [BOT, { id: BOT, username: "MusicBot" }],
+    ]);
+    const client = {
+      users: {
+        cache,
+        _add: (user: { id: string }) => cache.get(user.id),
+      },
+    } as unknown as Client;
+
+    const build = (content: string) => {
+      const message = { client, guild: null, content } as any;
+      // (message, users, roles, everyone, crosspostedChannels, repliedUser)
+      return new MessageMentions(
+        message,
+        [{ id: BOT, username: "MusicBot" }],
+        [],
+        false,
+        undefined,
+        { id: BOT, username: "MusicBot" }
+      );
+    };
+
+    // Reply binh thuong: Discord van bao co mention bot, nhung noi dung khong he ping.
+    const reply = build("bài này hay đấy");
+    expect(reply.users.has(BOT)).toBe(true);
+    expect(reply.parsedUsers.has(BOT)).toBe(false);
+    expect(shouldShowBotInfo(reply as unknown as MentionInfo, BOT)).toBe(false);
+
+    // Reply nhung co ping that trong noi dung -> van phai tra loi.
+    const replyWithPing = build(`<@${BOT}> bài này hay đấy`);
+    expect(replyWithPing.parsedUsers.has(BOT)).toBe(true);
+    expect(shouldShowBotInfo(replyWithPing as unknown as MentionInfo, BOT)).toBe(true);
+  });
 });
 
 describe("stripBotMention", () => {

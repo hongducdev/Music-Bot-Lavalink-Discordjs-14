@@ -38,16 +38,26 @@ export interface MentionInfo {
   /** Tin nhan co @everyone hoac @here. */
   everyone: boolean;
   roles: { size: number };
+  /**
+   * `message.mentions.users`: moi user Discord coi la co mention.
+   * LUU Y: gom ca tac gia tin nhan duoc reply, du noi dung khong he ping.
+   */
   users: { has: (id: string) => boolean };
+  /** `message.mentions.parsedUsers`: chi cac token ping thuc su nam trong noi dung. */
+  parsedUsers: { has: (id: string) => boolean };
 }
 
 /**
  * Chi tra loi khi bot duoc ping truc tiep.
  * Bo qua @everyone/@here va ping role de khong ban thong tin vao moi tin nhan.
+ *
+ * Phai doi chieu them `parsedUsers`: khi ai do reply tin nhan cua bot, Discord tu them
+ * tac gia tin nhan duoc reply vao `mentions.users` du noi dung khong he ping. Chi dua vao
+ * `users` se khien bot gioi thieu thong tin moi lan bi reply.
  */
 export function shouldShowBotInfo(mentions: MentionInfo, botId: string): boolean {
   if (mentions.everyone || mentions.roles.size > 0) return false;
-  return mentions.users.has(botId);
+  return mentions.users.has(botId) && mentions.parsedUsers.has(botId);
 }
 
 /**
