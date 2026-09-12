@@ -5,6 +5,8 @@ import { config } from "./config.js";
 import { createLavalink } from "./music/player.js";
 import { loadCommands } from "./utils/command-loader.js";
 import { startStatusRotation } from "./status.js";
+import { readRpcOptions, RequesterRpc } from "./rpc/requester-rpc.js";
+import { bindMusicPresence } from "./rpc/music-presence.js";
 import {
   DELETE_AFTER,
   EMBED_COLORS,
@@ -32,6 +34,27 @@ const client = new Client({
 });
 
 client.lavalink = createLavalink(client);
+
+try {
+  const rpcOptions = readRpcOptions(config.clientId);
+  if (rpcOptions) {
+    const rpc = new RequesterRpc(rpcOptions);
+    await rpc.start();
+    client.requesterRpc = rpc;
+    bindMusicPresence(client, rpc, config.clientId);
+    console.log("[rpc] OAuth callback ready.");
+  }
+} catch {
+  console.error("[rpc] Không bật được RPC; kiểm tra RPC_REDIRECT_URI, RPC_HOST và RPC_PORT.");
+}
+
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  process.once(signal, () => {
+    client.requesterRpc?.close();
+    client.destroy();
+    process.exit(0);
+  });
+}
 
 const { commands, aliases } = await loadCommands(join(__dirname, "commands"));
 
@@ -126,4 +149,8 @@ process.on("unhandledRejection", (reason) => {
   console.error("[unhandledRejection]", reason instanceof Error ? reason.message : reason);
 });
 
-client.login(config.discordToken);
+client.login(config.discordToken).catch(() => {
+  client.requesterRpc?.close();
+  console.error("[bot] Đăng nhập Discord thất bại.");
+  process.exit(1);
+});
