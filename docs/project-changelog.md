@@ -8,6 +8,7 @@
 - Requester-bound OAuth PKCE with expiring single-use state and in-memory Gaming SDK connections.
 - Song title, artist, timing and song link; pause/resume and stop/queue lifecycle synchronization.
 - Local security/state tests and real loopback WebSocket protocol checks.
+- Bot info embed (on a direct ping) adds a "Mời bot" link button carrying exactly the permissions the bot needs.
 
 ### Fixed
 
