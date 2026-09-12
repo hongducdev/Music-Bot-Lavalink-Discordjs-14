@@ -17,7 +17,9 @@ export const command: Command = {
     }
 
     const skipped = player.queue.current.info.title;
-    await player.skip();
+    // throwError=false: bai cuoi cung trong hang doi van skip duoc (het hang doi
+    // thi de autoplay/queueEnd xu ly, khong nem RangeError).
+    await player.skip(0, false);
     await interaction.reply(
       silentReply(embed(`⏩ | Đã bỏ qua:\n> **${skipped}**`, EMBED_COLORS.default, "Skip"))
     );
@@ -30,7 +32,7 @@ export const command: Command = {
     }
 
     const skipped = player.queue.current.info.title;
-    await player.skip();
+    await player.skip(0, false);
     await message.reply(
       silentReply(embed(`⏩ | Đã bỏ qua:\n> **${skipped}**`, EMBED_COLORS.default, "Skip"))
     );
