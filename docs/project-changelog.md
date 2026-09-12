@@ -14,6 +14,10 @@
 
 - Autoplay/fallback now pass the track requester to Lavalink search, preserving attribution for RPC.
 
+### Changed
+
+- README condensed to setup, commands and features; deep playback troubleshooting moved to `docs/troubleshooting.md`, and the stale `application.example.yml` copy step is gone.
+
 ### Limitations
 
 - Needs application Social SDK/Public Client and a registered callback. Live Discord acceptance not yet performed.
