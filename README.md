@@ -107,7 +107,7 @@ npm test
 
 ## 7. Danh sách lệnh
 
-Bot hỗ trợ cả **Slash Command** (`/`) và **Prefix Command** (mặc định là `!`, có thể đổi biến `PREFIX` trong `.env`):
+Bot hỗ trợ cả **Slash Command** (`/`), **Prefix Command** (`!`, đổi bằng biến `PREFIX` trong `.env`) và **ping thẳng bot** (`@TênBot <lệnh>`):
 
 | Chức năng | Slash Command | Prefix Command | Viết tắt (Alias) |
 |---|---|---|---|
@@ -125,8 +125,15 @@ Bot hỗ trợ cả **Slash Command** (`/`) và **Prefix Command** (mặc địn
 > `/help` đọc thẳng danh sách lệnh đang nạp trong bot, nên **lệnh mới tự xuất hiện**, không cần sửa bảng này.
 > Mỗi lệnh đều có cả bản slash và prefix — prefix `!p` là của `play` (không còn trùng với `ping`).
 
+### Ping bot
+Gõ `@TênBot` (ping trực tiếp, không kèm gì) để bot trả lời thẻ thông tin: ping, thời gian hoạt động, số server/thành viên, prefix, tác giả.
+
+Ping bot cũng thay được cho prefix: `@TênBot play con cá con chim` tương đương `!play con cá con chim`. Ping kèm tên lệnh sai cũng trả về thẻ thông tin để người dùng biết đường.
+
+Bot **bỏ qua** `@everyone`, `@here` và ping role — nên không bắn thẻ này vào mọi tin nhắn. Tin nhắn có prefix (`!play …`) luôn được xử lý như lệnh trước, không bị thẻ thông tin “cướp”.
+
 ### Autoplay
-Khi hàng đợi kết thúc, bot tự tìm bài liên quan (cùng ca sĩ/tên bài) trên YouTube Music và phát tiếp. **Mặc định BẬT**, tắt bằng `/autoplay bat:false` hoặc `!autoplay off`. Trạng thái lưu trong bộ nhớ — restart bot sẽ về mặc định BẬT.
+Khi hàng đợi kết thúc, bot tự lấy danh sách **mix (RD)** của bài vừa phát trên YouTube — đây là danh sách bài liên quan thật sự, đa dạng — rồi chọn ngẫu nhiên một bài **chưa phát gần đây**. Nếu mix lỗi hoặc rỗng, bot lùi về tìm theo tên kênh (nghệ sĩ) trên YouTube Music. Bot nhớ 30 bài gần nhất mỗi server nên autoplay không lặp lại bài cũ. **Mặc định BẬT**, tắt bằng `/autoplay bat:false` hoặc `!autoplay off`. Trạng thái lưu trong bộ nhớ — restart bot sẽ về mặc định BẬT.
 
 ### Tin nhắn tự xoá
 Kênh chat không bị spam: bot tự xoá tin nhắn của chính nó sau một thời gian (khai báo ở `DELETE_AFTER` trong `src/utils/embed.ts`).
@@ -137,7 +144,7 @@ Kênh chat không bị spam: bot tự xoá tin nhắn của chính nó sau một
 | Thông báo hết nhạc, bài bị kẹt, phải đổi nguồn phát | 20 giây |
 | Card **Now playing** (bắn ra mỗi lần chuyển bài) | 2 phút |
 | `/nowplaying` và `!nowplaying` | 2 phút |
-| Xác nhận pause/resume/skip/stop/autoplay, `/queue`, `/help` | giữ lại |
+| Xác nhận pause/resume/skip/stop/autoplay, `/queue`, `/help`, thẻ thông tin khi ping bot | giữ lại |
 
 Bot chỉ xoá tin nhắn của chính nó, và lỗi khi xoá (bị xoá tay trước đó, mất quyền) được bỏ qua nên không làm sập bot.
 

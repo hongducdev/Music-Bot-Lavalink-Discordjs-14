@@ -13,9 +13,11 @@ import {
   privateReply,
   privateReplyAndCleanup,
   setEmbedIcon,
+  silentReply,
   silentReplyAndCleanup,
 } from "./utils/embed.js";
 import type { Command } from "./types/command.js";
+import { buildBotInfoEmbed, shouldShowBotInfo, stripBotMention } from "./bot-info.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -72,14 +74,42 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
 client.on(Events.MessageCreate, async (message) => {
   if (message.author.bot || !message.guild) return;
-  if (!message.content.startsWith(config.prefix)) return;
 
-  const args = message.content.slice(config.prefix.length).trim().split(/\s+/);
+  const sendBotInfo = async (): Promise<void> => {
+    if (!client.user) return;
+    try {
+      await message.reply(silentReply(buildBotInfoEmbed(client, config.prefix, commands.size)));
+    } catch (error) {
+      console.error("[bot-info] Không trả lời được mention:", error);
+    }
+  };
+
+  // Hai cach go lenh: `!play x` hoac `@Bot play x`.
+  const mentioned = client.user ? stripBotMention(message.content, client.user.id) : null;
+  const viaMention = mentioned !== null;
+  const body = viaMention
+    ? mentioned
+    : message.content.startsWith(config.prefix)
+      ? message.content.slice(config.prefix.length).trim()
+      : null;
+  if (body === null) {
+    // Ping bot giua cau (khong nam dau tin nhan) van duoc gioi thieu bot.
+    if (client.user && shouldShowBotInfo(message.mentions, client.user.id)) await sendBotInfo();
+    return;
+  }
+
+  // Ping kem @everyone/@here hoac role thi bot im lang (xem shouldShowBotInfo).
+  if (viaMention && !shouldShowBotInfo(message.mentions, client.user!.id)) return;
+
+  const args = body.split(/\s+/).filter(Boolean);
   const commandName = args.shift()?.toLowerCase();
-  if (!commandName) return;
+  const command = commandName ? commands.get(commandName) || aliases.get(commandName) : undefined;
 
-  const command = commands.get(commandName) || aliases.get(commandName);
-  if (!command || !command.executeMessage) return;
+  // Ping tron hoac lenh khong ton tai: gioi thieu bot thay vi im lang.
+  if (!command?.executeMessage) {
+    if (viaMention) await sendBotInfo();
+    return;
+  }
 
   try {
     await command.executeMessage(message, args);
