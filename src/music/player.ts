@@ -17,7 +17,14 @@ import {
   markAsFallback,
   shouldFallback,
 } from "./fallback.js";
-import { isAutoplayEnabled, pickRelatedTrack } from "./autoplay.js";
+import {
+  buildRadioQuery,
+  buildRelatedQuery,
+  isAutoplayEnabled,
+  pickRelatedTrack,
+  playedIdentifiers,
+  rememberPlayed,
+} from "./autoplay.js";
 import { authErrorHint, isNodeAuthError } from "./node-error.js";
 
 declare module "discord.js" {
@@ -67,6 +74,7 @@ export function createLavalink(client: Client): LavalinkManager {
   });
 
   lavalink.on("trackStart", (player, track) => {
+    rememberPlayed(player.guildId, track?.info.identifier);
     const info = track?.info;
     notify(client, player.textChannelId, {
       description: `▶️ | Đang phát:\n> ${info ? trackLink(info) : "Không rõ"}`,
@@ -162,18 +170,31 @@ async function queueRelatedTrack(
 ): Promise<void> {
   if (!lastPlayedTrack || !isAutoplayEnabled(player.guildId)) return;
 
-  try {
-    const res = await player.search(
-      { query: buildFallbackQuery(lastPlayedTrack), source: "ytmsearch" },
-      lastPlayedTrack.userData
-    );
-    const next = pickRelatedTrack<Track | UnresolvedTrack>(
-      res.tracks,
-      lastPlayedTrack.info.identifier
-    );
-    if (next) player.queue.add(next);
-  } catch (error) {
-    console.error("[autoplay] Không tìm được bài liên quan:", error);
+  const played = playedIdentifiers(player.guildId);
+
+  // Uu tien "mix" cua YouTube (danh sach bai lien quan that su). Mix loi hoac
+  // rong thi lui ve tim theo ten kenh, rong hon "ten bai + kenh" nhieu.
+  const attempts: { query: string; source?: "ytmsearch" }[] = [];
+  const radio = buildRadioQuery(lastPlayedTrack);
+  if (radio) attempts.push({ query: radio });
+  attempts.push({ query: buildRelatedQuery(lastPlayedTrack), source: "ytmsearch" });
+
+  for (const attempt of attempts) {
+    if (!attempt.query) continue;
+    try {
+      const res = await player.search(attempt, lastPlayedTrack.userData);
+      const next = pickRelatedTrack<Track | UnresolvedTrack>(
+        res.tracks,
+        lastPlayedTrack.info.identifier,
+        played
+      );
+      if (next) {
+        player.queue.add(next);
+        return;
+      }
+    } catch (error) {
+      console.error("[autoplay] Không tìm được bài liên quan:", error);
+    }
   }
 }
 
