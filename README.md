@@ -128,6 +128,7 @@ Bot hỗ trợ cả **Slash Command** (`/`), **Prefix Command** (`!`, đổi b�
 | Dừng & rời kênh | `/stop` | `!stop` | - |
 | Kiểm tra ping | `/ping` | `!ping` | - |
 | Trợ giúp | `/help [lenh]` | `!help [lenh]` | `!h` |
+| RPC trên profile | `/rpc connect\|status\|disconnect` | `!rpc connect\|status\|disconnect` | - |
 
 > `/help` đọc thẳng danh sách lệnh đang nạp trong bot, nên **lệnh mới tự xuất hiện**, không cần sửa bảng này.
 > Mỗi lệnh đều có cả bản slash và prefix — prefix `!p` là của `play` (không còn trùng với `ping`).
@@ -141,6 +142,38 @@ Bot **bỏ qua** `@everyone`, `@here` và ping role — nên không bắn thẻ 
 
 ### Autoplay
 Khi hàng đợi kết thúc, bot tự lấy danh sách **mix (RD)** của bài vừa phát trên YouTube — đây là danh sách bài liên quan thật sự, đa dạng — rồi chọn ngẫu nhiên một bài **chưa phát gần đây**. Nếu mix lỗi hoặc rỗng, bot lùi về tìm theo tên kênh (nghệ sĩ) trên YouTube Music. Bot nhớ 30 bài gần nhất mỗi server nên autoplay không lặp lại bài cũ. **Mặc định BẬT**, tắt bằng `/autoplay bat:false` hoặc `!autoplay off`. Trạng thái lưu trong bộ nhớ — restart bot sẽ về mặc định BẬT.
+
+### RPC trên profile người nghe
+
+Người dùng chạy `/rpc connect`, mở link riêng tư và cấp quyền bằng **đúng tài khoản gọi lệnh**.
+Ai đã liên kết mà đang ngồi cùng kênh voice với bot sẽ thấy Rich Presence của bài đang phát; người yêu cầu bài cũng thấy dù không ở trong voice.
+Rich Presence gồm tên bot hiện tại, tên bài, nghệ sĩ, thời gian và nút mở bài hát.
+`!rpc connect` gửi link qua DM; nếu chặn DM, dùng slash command. Link hết hạn sau 5 phút.
+
+Thiết lập một lần cho chủ bot:
+
+1. Mở application có ID bằng `CLIENT_ID` trong Discord Developer Portal, bật Social SDK và OAuth2 **Public Client**.
+2. Đăng ký Redirect URL và đặt cùng giá trị vào `.env`:
+
+   ```env
+   RPC_REDIRECT_URI=https://your-domain.example/callback
+   RPC_HOST=127.0.0.1
+   RPC_PORT=8787
+   ```
+
+3. Reverse proxy HTTPS của domain đó tới `http://127.0.0.1:8787`. Callback phải truy cập được từ trình duyệt của người cấp quyền. Không ghi query string callback vào access log vì chứa authorization code.
+   Tự thử trên máy chạy bot có thể dùng `http://127.0.0.1:8787/callback` và đăng ký Redirect tương ứng; **localhost của người khác không trỏ tới máy bot**.
+4. Chạy `npm run deploy` để đăng ký `/rpc`, rồi khởi động lại bot. Không cần client secret hay token tài khoản Discord cá nhân.
+
+Scope dùng là `openid sdk.social_layer_presence`, theo [tài liệu Social SDK](https://docs.discord.com/developers/discord-social-sdk/core-concepts/oauth2-scopes).
+Mã giao tiếp Gateway tham khảo [Discord-OAuth2-RPC](https://github.com/aiko-chan-ai/Discord-OAuth2-RPC/tree/07ea5a6dc707b529a1eef5f3343224a40d1bcb42); đây là tích hợp PoC với Gateway Gaming SDK, chưa phải bảo đảm hỗ trợ lâu dài của Discord.
+
+- `/rpc status` kiểm tra kết nối; `/rpc disconnect` đóng phiên và xóa dữ liệu liên kết trong bot. Thu hồi quyền ứng dụng hoàn toàn tại Discord → Authorized Apps.
+- Pause bỏ timer đang chạy; resume cập nhật lại. Hết bài, stop, bot rời voice hoặc người nghe rời kênh voice sẽ xóa RPC cũ. Các cập nhật được gộp, có thể trễ khoảng 4 giây.
+- Autoplay và nguồn fallback giữ requester của bài trước. Nếu cùng một người phát ở nhiều server, bài bắt đầu gần nhất được ưu tiên.
+- Token chỉ giữ trong RAM, không ghi file/database; không refresh hoặc tự reconnect. Restart bot, token hết hạn hay Gateway ngắt kết nối thì chạy `/rpc connect` lại.
+- Nếu chưa cấp quyền, nhạc vẫn phát bình thường. Bỏ trống `RPC_REDIRECT_URI` để tắt tính năng.
+- Kiểm thử tự động xác nhận logic và kết nối WebSocket cục bộ; cần thử OAuth và profile thực tế bằng application đã bật Social SDK. Nếu không thấy activity, kiểm tra quyền ứng dụng và cài đặt chia sẻ hoạt động của người dùng.
 
 ### Tin nhắn tự xoá
 Kênh chat không bị spam: bot tự xoá tin nhắn của chính nó sau một thời gian (khai báo ở `DELETE_AFTER` trong `src/utils/embed.ts`).
@@ -248,4 +281,3 @@ Lưu ý: Lavalink **không phát được audio gốc của Spotify** (DRM). Spo
 ---
 
 Quy ước commit message và checklist trước khi commit: xem [CONTRIBUTING.md](CONTRIBUTING.md).
-
