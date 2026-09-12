@@ -1,14 +1,21 @@
-# Discord Music Bot (Lavalink + discord.js v14)
+# 🎵 Discord Music Bot (Lavalink + discord.js v14)
+
+![Node.js 22+](https://img.shields.io/badge/Node.js-22%2B-339933?logo=nodedotjs&logoColor=white)
+![TypeScript 7](https://img.shields.io/badge/TypeScript-7-3178C6?logo=typescript&logoColor=white)
+![discord.js v14](https://img.shields.io/badge/discord.js-v14-5865F2?logo=discord&logoColor=white)
+![Lavalink v4](https://img.shields.io/badge/Lavalink-v4-9333EA)
+![Java 17+](https://img.shields.io/badge/Java-17%2B-ED8B00?logo=openjdk&logoColor=white)
+![tests: vitest](https://img.shields.io/badge/tests-vitest-6E9F18?logo=vitest&logoColor=white)
 
 Bot Discord nghe nhạc bằng TypeScript, dùng **discord.js v14** và **Lavalink v4** (hỗ trợ phát nhạc từ YouTube qua Lavalink source).
 
-## 1. Yêu cầu hệ thống
+## 1. 📦 Yêu cầu hệ thống
 
 - Node.js 22+
 - Java 17+ (để chạy Lavalink v4 độc lập)
 - Token bot Discord và Application ID từ Discord Developer Portal
 
-## 2. Cài đặt
+## 2. 🚀 Cài đặt
 
 ```bash
 npm install
@@ -38,7 +45,7 @@ Cập nhật các biến trong `.env`:
 
 `lavalink/application.yml` đọc secret từ biến môi trường dạng `${LAVALINK_PASSWORD:...}`, nên an toàn để commit.
 
-## 3. Chạy Lavalink độc lập (không Docker)
+## 3. 🎧 Chạy Lavalink độc lập (không Docker)
 
 1. Tải file `Lavalink.jar` (bản **4.2.2 trở lên** — bắt buộc, vì Discord yêu cầu giao thức voice DAVE) từ trang phát hành Lavalink.
 2. **Khởi động bằng script** để secret từ `.env` được nạp:
@@ -64,7 +71,7 @@ Yt-dlp phải được cập nhật định kỳ khi YouTube đổi cơ chế:
 .\lavalink\yt-dlp.exe -U
 ```
 
-## 4. Deploy slash command
+## 4. ⚙️ Deploy slash command
 
 Đăng ký danh sách lệnh Slash lên Discord:
 
@@ -88,7 +95,7 @@ Script cũng in ra **link mời bot kèm đủ quyền** ở cuối — dùng li
 
 Nếu thiếu quyền, `/play` sẽ báo rõ tên quyền còn thiếu thay vì im lặng.
 
-## 5. Chạy bot
+## 5. ▶️ Chạy bot
 
 ```bash
 # Môi trường dev (tự nạp TS)
@@ -99,13 +106,13 @@ npm run build
 npm start
 ```
 
-## 6. Chạy unit test
+## 6. 🧪 Chạy unit test
 
 ```bash
 npm test
 ```
 
-## 7. Danh sách lệnh
+## 7. 🎮 Danh sách lệnh
 
 Bot hỗ trợ cả **Slash Command** (`/`), **Prefix Command** (`!`, đổi bằng biến `PREFIX` trong `.env`) và **ping thẳng bot** (`@TênBot <lệnh>`):
 
@@ -148,7 +155,7 @@ Kênh chat không bị spam: bot tự xoá tin nhắn của chính nó sau một
 
 Bot chỉ xoá tin nhắn của chính nó, và lỗi khi xoá (bị xoá tay trước đó, mất quyền) được bỏ qua nên không làm sập bot.
 
-## 8. Khắc phục sự cố
+## 8. 🔧 Khắc phục sự cố
 
 ### Bot báo "Đang phát" nhưng không có tiếng
 Bot sẽ tự báo lỗi trong kênh chat khi stream fail. Nếu vẫn cần xem chi tiết, log ở:
