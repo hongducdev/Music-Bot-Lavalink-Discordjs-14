@@ -1,10 +1,20 @@
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { Client, GatewayIntentBits, Collection, Events, MessageFlags } from "discord.js";
+import { Client, GatewayIntentBits, Collection, Events } from "discord.js";
 import { config } from "./config.js";
 import { createLavalink } from "./music/player.js";
 import { loadCommands } from "./utils/command-loader.js";
-import { EMBED_COLORS, embed } from "./utils/embed.js";
+import { startStatusRotation } from "./status.js";
+import {
+  DELETE_AFTER,
+  EMBED_COLORS,
+  deleteAfter,
+  embed,
+  privateReply,
+  privateReplyAndCleanup,
+  setEmbedIcon,
+  silentReplyAndCleanup,
+} from "./utils/embed.js";
 import type { Command } from "./types/command.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -23,11 +33,17 @@ client.lavalink = createLavalink(client);
 
 const { commands, aliases } = await loadCommands(join(__dirname, "commands"));
 
+// Nap registry len client de /help tu liet ke moi lenh, ke ca lenh them sau nay.
+client.commands = commands;
+client.aliases = aliases;
+
 client.on("raw", (d) => client.lavalink.sendRawData(d));
 
 client.once(Events.ClientReady, () => {
   console.log(`Logged in as ${client.user?.tag}`);
   if (client.user) {
+    setEmbedIcon(client.user.displayAvatarURL());
+    startStatusRotation(client, config.prefix);
     client.lavalink.init({ ...client.user });
   }
 });
@@ -42,14 +58,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
     await command.execute(interaction);
   } catch (error) {
     console.error(`Error executing ${interaction.commandName}:`, error);
-    const replyPayload = {
-      flags: MessageFlags.Ephemeral as const,
-      embeds: [embed("Có lỗi xảy ra khi chạy lệnh. Thử lại giúp mình nhé! 🛠️", EMBED_COLORS.error, "❌ Lỗi")],
-    };
+    const errorEmbed = () =>
+      embed("🚫 | Có lỗi xảy ra khi chạy lệnh. Thử lại giúp mình nhé!", EMBED_COLORS.error, "Lỗi");
+
     if (interaction.replied || interaction.deferred) {
-      await interaction.followUp(replyPayload);
+      const sent = await interaction.followUp(privateReply(errorEmbed()));
+      deleteAfter(() => interaction.deleteReply(sent.id), DELETE_AFTER.error);
     } else {
-      await interaction.reply(replyPayload);
+      await privateReplyAndCleanup(interaction, errorEmbed());
     }
   }
 });
@@ -69,9 +85,10 @@ client.on(Events.MessageCreate, async (message) => {
     await command.executeMessage(message, args);
   } catch (error) {
     console.error(`Error executing message command ${commandName}:`, error);
-    await message.reply({
-      embeds: [embed("Có lỗi xảy ra khi chạy lệnh. Thử lại giúp mình nhé! 🛠️", EMBED_COLORS.error, "❌ Lỗi")],
-    });
+    await silentReplyAndCleanup(
+      message,
+      embed("🚫 | Có lỗi xảy ra khi chạy lệnh. Thử lại giúp mình nhé!", EMBED_COLORS.error, "Lỗi")
+    );
   }
 });
 
