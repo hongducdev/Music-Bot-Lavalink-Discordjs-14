@@ -17,8 +17,6 @@ lavalink/*.jar.bak
 lavalink/yt-dlp.exe
 lavalink/plugins/
 lavalink/logs/
-lavalink/out.log
-lavalink/err.log
 
 # ===== Log & file tạm =====
 *.log
