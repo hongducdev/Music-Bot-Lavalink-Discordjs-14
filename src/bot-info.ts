@@ -9,6 +9,7 @@ import { EMBED_COLORS, embed, type MessageContainerBuilder } from "./utils/embed
 import { REQUIRED_TEXT_PERMISSIONS, REQUIRED_VOICE_PERMISSIONS } from "./utils/permissions.js";
 import { formatDuration } from "./utils/text.js";
 import { BOT_AUTHOR } from "./status.js";
+import { UI_ICONS } from "./utils/ui.js";
 
 /** Quyen bot can de chay du tinh nang; khong xin Administrator. */
 const INVITE_PERMISSIONS = PermissionsBitField.resolve([
@@ -29,7 +30,7 @@ export function inviteUrl(botId: string): string {
 /** Nut "Mời bot" duoi embed; nut Link khong can xu ly interaction. */
 export function inviteButton(botId: string): ActionRowBuilder<ButtonBuilder> {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("Mời bot").setURL(inviteUrl(botId))
+    new ButtonBuilder().setStyle(ButtonStyle.Link).setEmoji(UI_ICONS.link).setLabel("Mời bot").setURL(inviteUrl(botId))
   );
 }
 

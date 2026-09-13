@@ -23,11 +23,11 @@ import {
 describe("native Components V2 cards", () => {
   it("serializes native components without legacy embed properties", () => {
     const json = embed("hello", EMBED_COLORS.default, "Title").toJSON();
-    expect(json).toEqual({ type: 17, accent_color: 0x5865f2, components: [
-      { type: 10, content: "### Title" }, { type: 10, content: "hello" }
+    expect(json).toEqual({ type: 17, accent_color: 0xecc5c0, components: [
+      { type: 10, content: "### ℹ️ Title" }, { type: 10, content: "hello" }
     ] });
     expect(Object.getOwnPropertyNames(json)).not.toContain("description");
-    expect(embed("boom", EMBED_COLORS.error).toJSON().accent_color).toBe(0xed4245);
+    expect(embed("boom", EMBED_COLORS.error).toJSON().accent_color).toBe(0xff4949);
   });
 
   it("never sends empty text and bounds descriptions", () => {
@@ -56,7 +56,7 @@ describe("native Components V2 cards", () => {
       .setFooter({text: "Queue"}).setTimestamp(1000);
     const json = card.toJSON();
     const types = json.components.map(c => c.type);
-    expect(types).toEqual([10, 10, 12, 14, 10, 14, 1, 14, 10]);
+    expect(types).toEqual([12, 10, 10, 14, 1, 14, 10, 14, 10]);
     expect(json.components.at(-1)).toEqual({ type: 10, content: "-# Queue · <t:1:R>" });
     expect(card.toJSON()).toEqual(json);
     privateReply(card, [row]);

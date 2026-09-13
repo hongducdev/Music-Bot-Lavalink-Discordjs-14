@@ -1,5 +1,5 @@
 import { ActionRowBuilder, escapeMarkdown, StringSelectMenuBuilder } from "discord.js";
-import { embed } from "../utils/embed.js";
+import { embed, EMBED_COLORS } from "../utils/embed.js";
 import { clip } from "../utils/text.js";
 import type { WeatherForecast, WeatherLocation } from "./weather-service.js";
 
@@ -29,7 +29,7 @@ export function locationCard(places: WeatherLocation[], owner: string) {
       label: clip(place.name, 100), value: String(place.id),
       description: clip([place.admin1, place.country, `${place.latitude}, ${place.longitude}`].filter(Boolean).join(" · "), 100),
     })));
-  return embed("Có nhiều địa điểm phù hợp. Chọn nơi bạn muốn xem bên dưới.", 0x38bdf8, "📍 Thời tiết")
+  return embed("Có nhiều địa điểm phù hợp. Chọn nơi bạn muốn xem bên dưới.", EMBED_COLORS.default, "📍 Thời tiết")
     .addActionRows(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(menu))
     .setFooter({ text: "Địa danh: GeoNames qua Open-Meteo · Chỉ người gọi lệnh được chọn." });
 }
@@ -41,7 +41,7 @@ export function weatherCard(place: WeatherLocation, forecast: WeatherForecast) {
   const hourly = forecast.hourly.filter(hour => hour.time > forecast.current.time).slice(0, 6);
   const daily = forecast.daily.slice(0, 7);
   return embed(`## ${value(now.temperature_2m, "°C")} · ${condition(now.weather_code, now.is_day === 0)}\nCảm giác như **${value(now.apparent_temperature, "°C")}**`,
-    now.is_day === 0 ? 0x818cf8 : 0x38bdf8, `📍 ${escapeMarkdown(locationLabel(place))}`)
+    EMBED_COLORS.default, `📍 ${escapeMarkdown(locationLabel(place))}`)
     .addFields(
       { name: "Hiện tại", value: `Độ ẩm **${value(now.relative_humidity_2m, "%")}** · Gió **${value(now.wind_speed_10m, " km/h")}**` },
       { name: "Hôm nay", value: `Thấp / cao **${value(today?.temperature_2m_min, "°")} / ${value(today?.temperature_2m_max, "°")}**\nKhả năng mưa cao nhất **${value(today?.precipitation_probability_max, "%")}** · UV tối đa **${value(today?.uv_index_max, "")}**` },

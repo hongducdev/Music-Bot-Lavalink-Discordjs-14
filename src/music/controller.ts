@@ -8,6 +8,7 @@ import {
 import type { Player } from "lavalink-client";
 import { EMBED_COLORS, embed, privateReplyAndCleanup } from "../utils/embed.js";
 import { nextRepeatMode, repeatModeMessage } from "../commands/music/loop.js";
+import { UI_ICONS } from "../utils/ui.js";
 
 export const MUSIC_CONTROLLER_IDS = {
   playPause: "ctrl_play_pause",
@@ -23,27 +24,27 @@ export function buildMusicController(player?: Player | null): ActionRowBuilder<B
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId(MUSIC_CONTROLLER_IDS.playPause)
-      .setEmoji(isPaused ? "▶️" : "⏸️")
+      .setEmoji(isPaused ? UI_ICONS.play : UI_ICONS.pause)
       .setLabel(isPaused ? "Tiếp tục" : "Tạm dừng")
       .setStyle(ButtonStyle.Primary),
     new ButtonBuilder()
       .setCustomId(MUSIC_CONTROLLER_IDS.skip)
-      .setEmoji("⏭️")
+      .setEmoji(UI_ICONS.skip)
       .setLabel("Bỏ qua")
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId(MUSIC_CONTROLLER_IDS.shuffle)
-      .setEmoji("🔀")
+      .setEmoji(UI_ICONS.shuffle)
       .setLabel("Trộn")
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId(MUSIC_CONTROLLER_IDS.loop)
-      .setEmoji("🔁")
-      .setLabel("Lặp")
+      .setEmoji(player?.repeatMode === "track" ? UI_ICONS.loopTrack : UI_ICONS.loop)
+      .setLabel(player?.repeatMode === "track" ? "Lặp bài" : player?.repeatMode === "queue" ? "Lặp hàng đợi" : "Lặp: tắt")
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId(MUSIC_CONTROLLER_IDS.stop)
-      .setEmoji("⏹️")
+      .setEmoji(UI_ICONS.stop)
       .setLabel("Dừng")
       .setStyle(ButtonStyle.Danger)
   );

@@ -5,8 +5,9 @@ import {
   type APIEmbedField,
 } from "discord.js";
 import { clip, safeHttpUrl } from "./text.js";
+import { cardHeading, plainLabel } from "./ui.js";
 
-export const EMBED_COLORS = { default: 0x5865f2, error: 0xed4245 } as const;
+export const EMBED_COLORS = { default: 0xecc5c0, error: 0xff4949, music: 0xecc5c0 } as const;
 export const EMBED_DESCRIPTION_LIMIT = 4000;
 export const MEDIA_DESCRIPTION_LIMIT = 1024;
 export type CardActionRow = ActionRowBuilder<ButtonBuilder> | ActionRowBuilder<StringSelectMenuBuilder>;
@@ -80,10 +81,15 @@ export class MessageContainerBuilder extends ContainerBuilder {
       .filter(Boolean).join(" · ");
     const text = (value: string, limit: number) => new TextDisplayBuilder().setContent(clip(value, limit));
     const header = [
-      ...(this.title ? [text(`### ${this.title}`, 180)] : []),
+      ...(this.title ? [text(`### ${cardHeading(this.title, this.data.accent_color === EMBED_COLORS.error)}`, 180)] : []),
       text(this.description, 2200),
       ...(this.note ? [text(this.note, 400)] : []),
     ];
+    if (this.image) {
+      const item = new MediaGalleryItemBuilder().setURL(this.image.url);
+      if (this.image.description) item.setDescription(clip(this.image.description, MEDIA_DESCRIPTION_LIMIT));
+      card.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(item));
+    }
     if (this.thumbnail && !this.image) {
       const thumbnail = new ThumbnailBuilder().setURL(this.thumbnail.url);
       if (this.thumbnail.description) thumbnail.setDescription(clip(this.thumbnail.description, MEDIA_DESCRIPTION_LIMIT));
@@ -91,15 +97,15 @@ export class MessageContainerBuilder extends ContainerBuilder {
     } else {
       card.addTextDisplayComponents(...header);
     }
-    if (this.image) {
-      const item = new MediaGalleryItemBuilder().setURL(this.image.url);
-      if (this.image.description) item.setDescription(clip(this.image.description, MEDIA_DESCRIPTION_LIMIT));
-      card.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(item));
+    if (this.rows.length) {
+      card.addSeparatorComponents(new SeparatorBuilder().setSpacing(1));
+      card.addActionRowComponents(...this.rows.map(row => row.toJSON()));
     }
     if (this.fields.length) {
       // Stack metadata on mobile instead of pretending V2 supports embed inline columns.
       const groups: string[] = [];
-      for (const { name, value, inline } of this.fields) {
+      for (const { name: rawName, value, inline } of this.fields) {
+        const name = plainLabel(rawName);
         if (!inline) groups.push(`### ${name}\n${value}`);
         else if (groups.length) groups[groups.length - 1] += `\n**${name}** ${value}`;
         else groups.push(`**${name}** ${value}`);
@@ -113,10 +119,6 @@ export class MessageContainerBuilder extends ContainerBuilder {
         card.addTextDisplayComponents(part);
         remaining -= part.data.content!.length;
       }
-    }
-    if (this.rows.length) {
-      card.addSeparatorComponents(new SeparatorBuilder().setSpacing(1));
-      card.addActionRowComponents(...this.rows.map(row => row.toJSON()));
     }
     if (footer) {
       card.addSeparatorComponents(new SeparatorBuilder().setDivider(false).setSpacing(1));

@@ -27,7 +27,7 @@ export function buildQueueEmbed(player: Player): MessageContainerBuilder {
   const remaining = Math.max(0, tracks.length - PREVIEW_LIMIT);
   const builder = embed(
     current ? trackLink(current.info) : "Chưa có bài đang phát",
-    EMBED_COLORS.default,
+    EMBED_COLORS.music,
     "Hàng đợi"
   ).setSectionNote(current ? `${player.paused ? "Đã tạm dừng" : "Đang phát"} · ${current.info.isStream ? "Trực tiếp" : formatTrackDuration(current.info.duration)}` : "Thêm bài bằng `/play`")
     .addFields({ name: "Tiếp theo", value: list || "Hàng đợi trống. Dùng `/play` để chọn bài tiếp theo." })

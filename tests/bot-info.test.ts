@@ -156,7 +156,7 @@ describe("buildBotInfoEmbed", () => {
     expect(JSON.stringify(buildBotInfoEmbed(client, "!", 11).toJSON().components.at(-1))).not.toContain("http");
     expect(inviteButton(BOT_ID).toJSON()).toEqual({
       type: 1,
-      components: [{ type: 2, style: 5, label: "Mời bot", url }],
+      components: [{ type: 2, style: 5, label: "Mời bot", emoji: { name: "🔗", id: undefined, animated: false }, url }],
     });
   });
 });
