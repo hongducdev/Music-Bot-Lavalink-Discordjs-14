@@ -8,8 +8,8 @@ import {
   silentReplyAndCleanup,
 } from "../../utils/embed.js";
 
-const NO_PLAYER = "🚫 | Mình chưa phát nhạc ở server này.";
-const NOT_ENOUGH_TRACKS = "⚠️ | Hàng đợi cần ít nhất **2** bài để xáo trộn.";
+const NO_PLAYER = "🚫 Mình chưa phát nhạc ở server này.";
+const NOT_ENOUGH_TRACKS = "⚠️ Hàng đợi cần ít nhất **2** bài để xáo trộn.";
 
 export const command: Command = {
   data: new SlashCommandBuilder()
@@ -19,14 +19,14 @@ export const command: Command = {
   async execute(interaction) {
     const player = interaction.client.lavalink.getPlayer(interaction.guildId!);
     if (!player) {
-      await privateReplyAndCleanup(interaction, embed(NO_PLAYER, EMBED_COLORS.error, "Shuffle"));
+      await privateReplyAndCleanup(interaction, embed(NO_PLAYER, EMBED_COLORS.error, "Trộn hàng đợi"));
       return;
     }
 
     if (player.queue.tracks.length < 2) {
       await privateReplyAndCleanup(
         interaction,
-        embed(NOT_ENOUGH_TRACKS, EMBED_COLORS.error, "Shuffle")
+        embed(NOT_ENOUGH_TRACKS, EMBED_COLORS.error, "Trộn hàng đợi")
       );
       return;
     }
@@ -35,9 +35,9 @@ export const command: Command = {
     await interaction.reply(
       silentReply(
         embed(
-          `🔀 | Đã xáo trộn **${player.queue.tracks.length}** bài hát trong hàng đợi.`,
+          `🔀 Đã xáo trộn **${player.queue.tracks.length}** bài hát trong hàng đợi.`,
           EMBED_COLORS.default,
-          "Shuffle"
+          "Trộn hàng đợi"
         )
       )
     );
@@ -45,14 +45,14 @@ export const command: Command = {
   async executeMessage(message) {
     const player = message.client.lavalink.getPlayer(message.guildId!);
     if (!player) {
-      await silentReplyAndCleanup(message, embed(NO_PLAYER, EMBED_COLORS.error, "Shuffle"));
+      await silentReplyAndCleanup(message, embed(NO_PLAYER, EMBED_COLORS.error, "Trộn hàng đợi"));
       return;
     }
 
     if (player.queue.tracks.length < 2) {
       await silentReplyAndCleanup(
         message,
-        embed(NOT_ENOUGH_TRACKS, EMBED_COLORS.error, "Shuffle")
+        embed(NOT_ENOUGH_TRACKS, EMBED_COLORS.error, "Trộn hàng đợi")
       );
       return;
     }
@@ -61,9 +61,9 @@ export const command: Command = {
     await message.reply(
       silentReply(
         embed(
-          `🔀 | Đã xáo trộn **${player.queue.tracks.length}** bài hát trong hàng đợi.`,
+          `🔀 Đã xáo trộn **${player.queue.tracks.length}** bài hát trong hàng đợi.`,
           EMBED_COLORS.default,
-          "Shuffle"
+          "Trộn hàng đợi"
         )
       )
     );

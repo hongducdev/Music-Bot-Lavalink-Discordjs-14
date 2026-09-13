@@ -133,24 +133,19 @@ describe("buildBotInfoEmbed", () => {
 
   it("renders ping, uptime, scale, prefix and author", () => {
     const json = buildBotInfoEmbed(client, "!", 11).toJSON();
-    const fields = Object.fromEntries((json.fields ?? []).map((f) => [f.name, f.value]));
-
-    expect(fields["🏓 | Ping"]).toBe("`42ms`");
-    expect(fields["⏱️ | Hoạt động"]).toBe("`1:02:03`");
-    expect(fields["🌐 | Server"]).toBe("`2`");
-    expect(fields["👥 | Thành viên"]).toBe("`15`");
-    expect(fields["💬 | Prefix"]).toBe("`!`");
-    expect(json.description).toContain("MusicBot");
-    expect(json.description).toContain("11");
-    expect(json.thumbnail?.url).toBe("https://cdn.test/avatar.png");
-    expect(json.footer?.text).toBe("Ví dụ: !play con cá con chim");
+    const text = JSON.stringify(json);
+    for (const value of ["42 ms", "1:02:03", "2 server", "15 thành viên", "MusicBot", "11 lệnh", "/play", "/radio"]) {
+      expect(text).toContain(value);
+    }
+    expect(text).toContain("https://cdn.test/avatar.png");
+    expect(text).toContain("Ví dụ: !play con cá con chim");
   });
 
   it("works before the client has a user", () => {
     const noUser = { ...client, user: null } as unknown as Client;
     const json = buildBotInfoEmbed(noUser, "!", 1).toJSON();
-    expect(json.description).toContain("MusicBot");
-    expect(json.footer?.text).toBe("Ví dụ: !play con cá con chim");
+    expect(JSON.stringify(json)).toContain("MusicBot");
+    expect(JSON.stringify(json)).toContain("Ví dụ: !play con cá con chim");
   });
 
   it("invites through the link button, not the footer", () => {
@@ -158,7 +153,7 @@ describe("buildBotInfoEmbed", () => {
     const url = `https://discord.com/oauth2/authorize?client_id=${BOT_ID}&scope=bot+applications.commands&permissions=${needed}`;
     expect(needed & PermissionsBitField.Flags.Administrator).toBe(0n);
     expect(inviteUrl(BOT_ID)).toBe(url);
-    expect(buildBotInfoEmbed(client, "!", 11).toJSON().footer?.text).not.toContain("http");
+    expect(JSON.stringify(buildBotInfoEmbed(client, "!", 11).toJSON().components.at(-1))).not.toContain("http");
     expect(inviteButton(BOT_ID).toJSON()).toEqual({
       type: 1,
       components: [{ type: 2, style: 5, label: "Mời bot", url }],

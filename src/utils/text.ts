@@ -1,3 +1,5 @@
+import { escapeMarkdown } from "discord.js";
+
 const DISCORD_LIMIT = 2000;
 
 /** Gia tri Lavalink/Java dung cho stream truc tiep (Long.MAX_VALUE). */
@@ -40,7 +42,20 @@ interface TrackTextInfo {
 
 /** Link markdown toi bai hat, hoac chi ten neu thieu uri. */
 export function trackLink(info: TrackTextInfo): string {
-  return info.uri ? `[${info.title}](${info.uri})` : info.title;
+  const title = escapeMarkdown(clip(info.title.replace(/[\r\n]+/g, " "), 100))
+    .replace(/[\[\]]/g, "\\$&");
+  const url = safeHttpUrl(info.uri);
+  return url && url.length <= 500 ? `[${title}](<${url}>)` : title;
+}
+
+/** Provider URLs are untrusted; ignore malformed or non-web media/link targets. */
+export function safeHttpUrl(value?: string | null): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) return null;
+    return url.href.replace(/\(/g, "%28").replace(/\)/g, "%29");
+  } catch { return null; }
 }
 
 interface TrackArtInfo {

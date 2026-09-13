@@ -61,9 +61,9 @@ describe("radio module", () => {
     const embed = buildRadioEmbed();
     const json = embed.toJSON();
 
-    expect(json.author?.name).toContain("Đài phát thanh 24/7");
-    expect(json.description).toContain("Lofi Girl");
-    expect(json.description).toContain("VOV3");
+    expect(JSON.stringify(json)).toContain("Radio 24/7");
+    expect(JSON.stringify(json)).toContain("Lofi Girl");
+    expect(JSON.stringify(json)).toContain("VOV3");
   });
 
   it("builds a StringSelectMenu with matching options", () => {

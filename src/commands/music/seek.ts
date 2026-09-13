@@ -9,8 +9,8 @@ import {
 } from "../../utils/embed.js";
 import { formatDuration, formatTrackDuration } from "../../utils/text.js";
 
-const NO_PLAYER = "🚫 | Mình chưa phát nhạc ở server này.";
-const NO_TRACK = "🚫 | Không có bài nào đang phát để tua.";
+const NO_PLAYER = "🚫 Mình chưa phát nhạc ở server này.";
+const NO_TRACK = "🚫 Không có bài nào đang phát để tua.";
 
 export function parseTimeToMs(input?: string | null): number | null {
   if (!input) return null;
@@ -63,20 +63,20 @@ export const command: Command = {
   async execute(interaction) {
     const player = interaction.client.lavalink.getPlayer(interaction.guildId!);
     if (!player) {
-      await privateReplyAndCleanup(interaction, embed(NO_PLAYER, EMBED_COLORS.error, "Seek"));
+      await privateReplyAndCleanup(interaction, embed(NO_PLAYER, EMBED_COLORS.error, "Tua bài hát"));
       return;
     }
 
     const current = player.queue.current;
     if (!current) {
-      await privateReplyAndCleanup(interaction, embed(NO_TRACK, EMBED_COLORS.error, "Seek"));
+      await privateReplyAndCleanup(interaction, embed(NO_TRACK, EMBED_COLORS.error, "Tua bài hát"));
       return;
     }
 
     if (current.info.isStream || !current.info.duration) {
       await privateReplyAndCleanup(
         interaction,
-        embed("⚠️ | Không thể tua bài hát đang phát trực tiếp.", EMBED_COLORS.error, "Seek")
+        embed("⚠️ Không thể tua bài hát đang phát trực tiếp.", EMBED_COLORS.error, "Tua bài hát")
       );
       return;
     }
@@ -87,7 +87,7 @@ export const command: Command = {
     if (targetMs === null) {
       await privateReplyAndCleanup(
         interaction,
-        embed("⚠️ | Định dạng thời gian không hợp lệ. Ví dụ: `1:30` hoặc `90`.", EMBED_COLORS.error, "Seek")
+        embed("⚠️ Định dạng thời gian không hợp lệ. Ví dụ: `1:30` hoặc `90`.", EMBED_COLORS.error, "Tua bài hát")
       );
       return;
     }
@@ -96,9 +96,9 @@ export const command: Command = {
       await privateReplyAndCleanup(
         interaction,
         embed(
-          `⚠️ | Vị trí tua vượt quá thời lượng bài hát (${formatTrackDuration(current.info.duration)}).`,
+          `⚠️ Vị trí tua vượt quá thời lượng bài hát (${formatTrackDuration(current.info.duration)}).`,
           EMBED_COLORS.error,
-          "Seek"
+          "Tua bài hát"
         )
       );
       return;
@@ -108,9 +108,9 @@ export const command: Command = {
     await interaction.reply(
       silentReply(
         embed(
-          `⏩ | Đã tua tới: \`${formatDuration(targetMs)}\` / \`${formatTrackDuration(current.info.duration)}\``,
+          `⏩ Đã tua tới: \`${formatDuration(targetMs)}\` / \`${formatTrackDuration(current.info.duration)}\``,
           EMBED_COLORS.default,
-          "Seek"
+          "Tua bài hát"
         )
       )
     );
@@ -118,20 +118,20 @@ export const command: Command = {
   async executeMessage(message, args) {
     const player = message.client.lavalink.getPlayer(message.guildId!);
     if (!player) {
-      await silentReplyAndCleanup(message, embed(NO_PLAYER, EMBED_COLORS.error, "Seek"));
+      await silentReplyAndCleanup(message, embed(NO_PLAYER, EMBED_COLORS.error, "Tua bài hát"));
       return;
     }
 
     const current = player.queue.current;
     if (!current) {
-      await silentReplyAndCleanup(message, embed(NO_TRACK, EMBED_COLORS.error, "Seek"));
+      await silentReplyAndCleanup(message, embed(NO_TRACK, EMBED_COLORS.error, "Tua bài hát"));
       return;
     }
 
     if (current.info.isStream || !current.info.duration) {
       await silentReplyAndCleanup(
         message,
-        embed("⚠️ | Không thể tua bài hát đang phát trực tiếp.", EMBED_COLORS.error, "Seek")
+        embed("⚠️ Không thể tua bài hát đang phát trực tiếp.", EMBED_COLORS.error, "Tua bài hát")
       );
       return;
     }
@@ -142,7 +142,7 @@ export const command: Command = {
     if (targetMs === null) {
       await silentReplyAndCleanup(
         message,
-        embed("✍️ | Nhập thời gian cần tua nhé. Ví dụ: `!seek 1:30` hoặc `!seek 90`.", EMBED_COLORS.error, "Seek")
+        embed("✍️ Nhập thời gian cần tua nhé. Ví dụ: `!seek 1:30` hoặc `!seek 90`.", EMBED_COLORS.error, "Tua bài hát")
       );
       return;
     }
@@ -151,9 +151,9 @@ export const command: Command = {
       await silentReplyAndCleanup(
         message,
         embed(
-          `⚠️ | Vị trí tua vượt quá thời lượng bài hát (${formatTrackDuration(current.info.duration)}).`,
+          `⚠️ Vị trí tua vượt quá thời lượng bài hát (${formatTrackDuration(current.info.duration)}).`,
           EMBED_COLORS.error,
-          "Seek"
+          "Tua bài hát"
         )
       );
       return;
@@ -163,9 +163,9 @@ export const command: Command = {
     await message.reply(
       silentReply(
         embed(
-          `⏩ | Đã tua tới: \`${formatDuration(targetMs)}\` / \`${formatTrackDuration(current.info.duration)}\``,
+          `⏩ Đã tua tới: \`${formatDuration(targetMs)}\` / \`${formatTrackDuration(current.info.duration)}\``,
           EMBED_COLORS.default,
-          "Seek"
+          "Tua bài hát"
         )
       )
     );

@@ -81,17 +81,14 @@ export function buildBotInfoEmbed(
   const members = client.guilds.cache.reduce((sum, guild) => sum + guild.memberCount, 0);
 
   const builder = embed(
-    `👋 | Chào bạn! Mình là **${bot?.username ?? "MusicBot"}** — bot phát nhạc cho server.\n` +
-      `Dùng \`${prefix}help\` hoặc \`/help\` để xem **${commandCount}** lệnh.`,
+    `Nhạc cho những lúc ở cùng nhau.\n` +
+      `Vào kênh thoại, dùng \`/play\` để chọn bài hoặc \`/radio\` để nghe liên tục.`,
     EMBED_COLORS.default,
-    "Thông tin bot"
-  ).addFields(
-    { name: "🏓 | Ping", value: `\`${client.ws.ping}ms\``, inline: true },
-    { name: "⏱️ | Hoạt động", value: `\`${formatDuration(client.uptime ?? 0)}\``, inline: true },
-    { name: "🌐 | Server", value: `\`${guilds}\``, inline: true },
-    { name: "👥 | Thành viên", value: `\`${members}\``, inline: true },
-    { name: "💬 | Prefix", value: `\`${prefix}\``, inline: true },
-    { name: "👤 | Tác giả", value: BOT_AUTHOR, inline: true }
+    bot?.username ?? "MusicBot"
+  ).setSectionNote(`\`/help\` · ${commandCount} lệnh · prefix \`${prefix}\``).addFields(
+    { name: "Kết nối", value: `${client.ws.ping < 0 ? "Đang đo" : `${client.ws.ping} ms`} · hoạt động ${formatDuration(client.uptime ?? 0)}`, inline: true },
+    { name: "Cộng đồng", value: `${guilds} server · ${members} thành viên`, inline: true },
+    { name: "Tác giả", value: BOT_AUTHOR, inline: true }
   );
 
   const avatar = bot?.displayAvatarURL();

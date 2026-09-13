@@ -8,7 +8,7 @@ import {
   silentReplyAndCleanup,
 } from "../../utils/embed.js";
 
-const NO_PLAYER = "🚫 | Mình chưa phát nhạc ở server này.";
+const NO_PLAYER = "🚫 Mình chưa phát nhạc ở server này.";
 
 type FilterType = "nightcore" | "bassboost" | "8d" | "vaporwave" | "karaoke" | "clear";
 
@@ -16,24 +16,24 @@ export async function applyFilter(player: any, type: FilterType): Promise<string
   switch (type) {
     case "nightcore":
       await player.filterManager.toggleNightcore();
-      return "✨ | Đã chuyển đổi hiệu ứng **Nightcore**.";
+      return "✨ Đã chuyển đổi hiệu ứng **Nightcore**.";
     case "bassboost":
       await player.filterManager.setEQPreset("BassboostMedium");
-      return "💥 | Đã bật hiệu ứng **Bassboost** (tăng âm trầm).";
+      return "💥 Đã bật hiệu ứng **Bassboost** (tăng âm trầm).";
     case "8d":
       await player.filterManager.toggleRotation();
-      return "🎧 | Đã chuyển đổi hiệu ứng âm thanh **8D**.";
+      return "🎧 Đã chuyển đổi hiệu ứng âm thanh **8D**.";
     case "vaporwave":
       await player.filterManager.toggleVaporwave();
-      return "🌊 | Đã chuyển đổi hiệu ứng **Vaporwave**.";
+      return "🌊 Đã chuyển đổi hiệu ứng **Vaporwave**.";
     case "karaoke":
       await player.filterManager.toggleKaraoke();
-      return "🎤 | Đã chuyển đổi chế độ **Karaoke** (giảm giọng hát).";
+      return "🎤 Đã chuyển đổi chế độ **Karaoke** (giảm giọng hát).";
     case "clear":
     default:
       await player.filterManager.resetFilters();
       await player.filterManager.clearEQ();
-      return "🧹 | Đã tắt và khôi phục âm thanh gốc.";
+      return "🧹 Đã tắt và khôi phục âm thanh gốc.";
   }
 }
 
@@ -71,19 +71,19 @@ export const command: Command = {
   async execute(interaction) {
     const player = interaction.client.lavalink.getPlayer(interaction.guildId!);
     if (!player) {
-      await privateReplyAndCleanup(interaction, embed(NO_PLAYER, EMBED_COLORS.error, "Filter"));
+      await privateReplyAndCleanup(interaction, embed(NO_PLAYER, EMBED_COLORS.error, "Hiệu ứng âm thanh"));
       return;
     }
 
     const typeStr = interaction.options.getString("type", true) as FilterType;
     const msg = await applyFilter(player, typeStr);
 
-    await interaction.reply(silentReply(embed(msg, EMBED_COLORS.default, "Filter")));
+    await interaction.reply(silentReply(embed(msg, EMBED_COLORS.default, "Hiệu ứng âm thanh")));
   },
   async executeMessage(message, args) {
     const player = message.client.lavalink.getPlayer(message.guildId!);
     if (!player) {
-      await silentReplyAndCleanup(message, embed(NO_PLAYER, EMBED_COLORS.error, "Filter"));
+      await silentReplyAndCleanup(message, embed(NO_PLAYER, EMBED_COLORS.error, "Hiệu ứng âm thanh"));
       return;
     }
 
@@ -92,16 +92,16 @@ export const command: Command = {
       await silentReplyAndCleanup(
         message,
         embed(
-          "⚠️ | Chọn một hiệu ứng hợp lệ: `nightcore`, `bassboost`, `8d`, `vaporwave`, `karaoke`, `clear`.\n" +
+          "⚠️ Chọn một hiệu ứng hợp lệ: `nightcore`, `bassboost`, `8d`, `vaporwave`, `karaoke`, `clear`.\n" +
             "Ví dụ: `!filter nightcore` hoặc `!filter clear`",
           EMBED_COLORS.error,
-          "Filter"
+          "Hiệu ứng âm thanh"
         )
       );
       return;
     }
 
     const msg = await applyFilter(player, type);
-    await message.reply(silentReply(embed(msg, EMBED_COLORS.default, "Filter")));
+    await message.reply(silentReply(embed(msg, EMBED_COLORS.default, "Hiệu ứng âm thanh")));
   },
 };

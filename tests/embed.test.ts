@@ -15,119 +15,59 @@ import {
   embed,
   privateReply,
   privateReplyAndCleanup,
-  setEmbedIcon,
   silentReply,
   silentReplyAndCleanup,
   MessageContainerBuilder,
 } from "../src/utils/embed.js";
 
-describe("embed (Components V2)", () => {
-  it("sets description and the default pastel color as container", () => {
-    const builder = embed("hello");
-    const result = builder.toJSON();
-
-    expect(result.type).toBe(17);
-    expect(result.accent_color).toBe(EMBED_COLORS.default);
-    expect(result.description).toBe("hello");
-    expect(result.color).toBe(EMBED_COLORS.default);
-    expect(result.color).toBe(0xecc5c0);
+describe("native Components V2 cards", () => {
+  it("serializes native components without legacy embed properties", () => {
+    const json = embed("hello", EMBED_COLORS.default, "Title").toJSON();
+    expect(json).toEqual({ type: 17, accent_color: 0x5865f2, components: [
+      { type: 10, content: "### Title" }, { type: 10, content: "hello" }
+    ] });
+    expect(Object.getOwnPropertyNames(json)).not.toContain("description");
+    expect(embed("boom", EMBED_COLORS.error).toJSON().accent_color).toBe(0xed4245);
   });
 
-  it("accepts a custom color and author name", () => {
-    const result = embed("boom", EMBED_COLORS.error, "Loi").toJSON();
-
-    expect(result.author?.name).toBe("Loi");
-    expect(result.color).toBe(EMBED_COLORS.error);
-    expect(result.color).toBe(0xff4949);
-    expect(result.accent_color).toBe(0xff4949);
-    expect(result.description).toBe("boom");
+  it("never sends empty text and bounds descriptions", () => {
+    expect(embed("").toJSON().components[0]).toEqual({ type: 10, content: "-" });
+    const part = embed("x".repeat(9000)).toJSON().components[0] as any;
+    expect(part.content.length).toBeLessThanOrEqual(4000);
+    expect(part.content.endsWith("...")).toBe(true);
   });
 
-  it("uses the bot avatar as author icon once it is set", () => {
-    setEmbedIcon("https://cdn.example/avatar.png");
-    expect(embed("hi", EMBED_COLORS.default, "Ping").toJSON().author?.icon_url).toBe(
-      "https://cdn.example/avatar.png"
-    );
-
-    setEmbedIcon(null);
-    expect(embed("hi", EMBED_COLORS.default, "Ping").toJSON().author?.icon_url).toBeUndefined();
-  });
-
-  it("clips the description to Discord's limit", () => {
-    const result = embed("x".repeat(9000)).toJSON();
-
-    expect(result.description!.length).toBeLessThanOrEqual(4096);
-    expect(result.description!.endsWith("...")).toBe(true);
-  });
-
-  it("never sends an empty description", () => {
-    expect(embed("").toJSON().description).toBe("-");
-  });
-
-  it("creates a Section component with thumbnail accessory when thumbnail is present", () => {
-    const result = embed("Song title", EMBED_COLORS.default, "Now playing")
-      .setThumbnail("https://i.ytimg.com/vi/abc/hqdefault.jpg")
-      .toJSON();
-
-    expect(result.type).toBe(17);
-    const section = result.components.find((c: any) => c.type === 9) as any;
-    expect(section).toBeDefined();
-    expect(section.accessory).toEqual({
-      type: 11,
-      media: { url: "https://i.ytimg.com/vi/abc/hqdefault.jpg" },
-    });
-  });
-
-  it("carries alt text on the thumbnail accessory and clips it to 1024", () => {
-    const section = embed("Song", EMBED_COLORS.default)
-      .setThumbnail("https://i.ytimg.com/vi/abc/hqdefault.jpg", "a".repeat(3000))
-      .toJSON()
-      .components.find((c: any) => c.type === 9) as any;
-
-    expect(section.accessory.description.length).toBeLessThanOrEqual(1024);
-    expect(section.accessory.description.endsWith("...")).toBe(true);
-  });
-
-  it("uses the third Section slot for the section note", () => {
-    const section = embed("Mô tả", EMBED_COLORS.default, "Tác giả")
-      .setSectionNote("🎵 Kênh · ⏱️ 3:45")
-      .setThumbnail("https://x/y.png")
-      .toJSON()
-      .components.find((c: any) => c.type === 9) as any;
-
-    expect(section.components.length).toBe(3);
+  it("uses a thumbnail section with three text displays and accessible alt text", () => {
+    const json = embed("Song", undefined, "Playing").setSectionNote("Artist · 3:45")
+      .setThumbnail("https://x/y.png", "a".repeat(3000)).toJSON();
+    const section = json.components[0] as any;
+    expect(section.type).toBe(9);
+    expect(section.components).toHaveLength(3);
     expect(section.components[2].content).toContain("3:45");
+    expect(section.accessory.media.url).toBe("https://x/y.png");
+    expect(section.accessory.description.length).toBe(1024);
   });
 
-  it("formats fields and footer with separators inside the container", () => {
-    const result = embed("Queue", EMBED_COLORS.default)
-      .addFields(
-        { name: "Now playing", value: "Track 1", inline: true },
-        { name: "Total", value: "10 tracks", inline: true }
-      )
-      .setFooter({ text: "Queue preview" })
-      .setTimestamp()
-      .toJSON();
-
-    expect(result.type).toBe(17);
-    const separators = result.components.filter((c: any) => c.type === 14);
-    expect(separators.length).toBeGreaterThanOrEqual(1);
-
-    const textDisplays = result.components.filter((c: any) => c.type === 10) as any[];
-    const hasFooter = textDisplays.some((td) => td.content.includes("-# Queue preview"));
-    expect(hasFooter).toBe(true);
+  it("places hero media before details, controls before the quiet footer", () => {
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder().setCustomId("play").setStyle(ButtonStyle.Primary).setLabel("Play"));
+    const card = embed("Song", undefined, "Playing").setImage("https://x/art.png", "Cover")
+      .addFields({name: "Listening", value: "3:45"}).addActionRows(row)
+      .setFooter({text: "Queue"}).setTimestamp(1000);
+    const json = card.toJSON();
+    const types = json.components.map(c => c.type);
+    expect(types).toEqual([10, 10, 12, 14, 10, 14, 1, 14, 10]);
+    expect(json.components.at(-1)).toEqual({ type: 10, content: "-# Queue · <t:1:R>" });
+    expect(card.toJSON()).toEqual(json);
+    privateReply(card, [row]);
+    expect(card.toJSON()).toEqual(json);
   });
 
-  it("gives the main blocks large separator spacing for breathing room", () => {
-    const result = embed("Queue", EMBED_COLORS.default)
-      .addFields({ name: "Total", value: "10 tracks", inline: false })
-      .setFooter({ text: "Queue preview" })
-      .toJSON();
-
-    const separators = result.components.filter((c: any) => c.type === 14) as any[];
-    // mot cai truoc khoi fields, mot cai truoc footer
-    expect(separators.length).toBe(2);
-    expect(separators.every((s) => s.spacing === 2)).toBe(true);
+  it("falls back to text when media URLs are invalid", () => {
+    for (const url of ["not a URL", "javascript:alert(1)", "file:///secret", "https://user:pass@x/y"]) {
+      const card = embed("Song").setThumbnail(url).setImage(url).toJSON();
+      expect(card.components.map(c => c.type)).toEqual([10]);
+    }
   });
 });
 

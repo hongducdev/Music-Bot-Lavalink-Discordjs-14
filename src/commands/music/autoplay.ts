@@ -19,10 +19,10 @@ export const command: Command = {
       silentReply(
         embed(
           enabled
-            ? "🔁 | Đã bật autoplay: hết hàng đợi mình sẽ tự tìm bài liên quan."
-            : "⏹️ | Đã tắt autoplay: hết hàng đợi mình sẽ dừng.",
+            ? "🔁 Đã bật autoplay: hết hàng đợi mình sẽ tự tìm bài liên quan."
+            : "⏹️ Đã tắt autoplay: hết hàng đợi mình sẽ dừng.",
           EMBED_COLORS.default,
-          "Autoplay"
+          "Tự động phát"
         )
       )
     );
@@ -33,9 +33,9 @@ export const command: Command = {
       await message.reply(
         silentReply(
           embed(
-            `⚙️ | Autoplay đang **${isAutoplayEnabled(message.guildId!) ? "BẬT" : "TẮT"}**.\nDùng \`!autoplay on\` hoặc \`!autoplay off\`.`,
+            `⚙️ Autoplay đang **${isAutoplayEnabled(message.guildId!) ? "BẬT" : "TẮT"}**.\nDùng \`!autoplay on\` hoặc \`!autoplay off\`.`,
             EMBED_COLORS.default,
-            "Autoplay"
+            "Tự động phát"
           )
         )
       );
@@ -48,10 +48,10 @@ export const command: Command = {
       silentReply(
         embed(
           enabled
-            ? "🔁 | Đã bật autoplay: hết hàng đợi sẽ tự phát bài liên quan."
-            : "⏹️ | Đã tắt autoplay.",
+            ? "🔁 Đã bật autoplay: hết hàng đợi sẽ tự phát bài liên quan."
+            : "⏹️ Đã tắt autoplay.",
           EMBED_COLORS.default,
-          "Autoplay"
+          "Tự động phát"
         )
       )
     );

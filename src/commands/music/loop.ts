@@ -9,7 +9,7 @@ import {
   silentReplyAndCleanup,
 } from "../../utils/embed.js";
 
-const NO_PLAYER = "🚫 | Mình chưa phát nhạc ở server này.";
+const NO_PLAYER = "🚫 Mình chưa phát nhạc ở server này.";
 
 export function nextRepeatMode(current?: RepeatMode | string): RepeatMode {
   if (current === "track") return "queue";
@@ -29,12 +29,12 @@ export function parseRepeatMode(input?: string | null): RepeatMode | null {
 export function repeatModeMessage(mode: RepeatMode): string {
   switch (mode) {
     case "track":
-      return "🔂 | Chế độ lặp: **Lặp lại bài hiện tại**.";
+      return "🔂 Chế độ lặp: **Lặp lại bài hiện tại**.";
     case "queue":
-      return "🔁 | Chế độ lặp: **Lặp lại toàn bộ hàng đợi**.";
+      return "🔁 Chế độ lặp: **Lặp lại toàn bộ hàng đợi**.";
     case "off":
     default:
-      return "➡️ | Chế độ lặp: **Tắt lặp lại**.";
+      return "➡️ Chế độ lặp: **Tắt lặp lại**.";
   }
 }
 
@@ -57,7 +57,7 @@ export const command: Command = {
   async execute(interaction) {
     const player = interaction.client.lavalink.getPlayer(interaction.guildId!);
     if (!player) {
-      await privateReplyAndCleanup(interaction, embed(NO_PLAYER, EMBED_COLORS.error, "Loop"));
+      await privateReplyAndCleanup(interaction, embed(NO_PLAYER, EMBED_COLORS.error, "Chế độ lặp"));
       return;
     }
 
@@ -66,13 +66,13 @@ export const command: Command = {
 
     await player.setRepeatMode(targetMode);
     await interaction.reply(
-      silentReply(embed(repeatModeMessage(targetMode), EMBED_COLORS.default, "Loop"))
+      silentReply(embed(repeatModeMessage(targetMode), EMBED_COLORS.default, "Chế độ lặp"))
     );
   },
   async executeMessage(message, args) {
     const player = message.client.lavalink.getPlayer(message.guildId!);
     if (!player) {
-      await silentReplyAndCleanup(message, embed(NO_PLAYER, EMBED_COLORS.error, "Loop"));
+      await silentReplyAndCleanup(message, embed(NO_PLAYER, EMBED_COLORS.error, "Chế độ lặp"));
       return;
     }
 
@@ -81,7 +81,7 @@ export const command: Command = {
 
     await player.setRepeatMode(targetMode);
     await message.reply(
-      silentReply(embed(repeatModeMessage(targetMode), EMBED_COLORS.default, "Loop"))
+      silentReply(embed(repeatModeMessage(targetMode), EMBED_COLORS.default, "Chế độ lặp"))
     );
   },
 };

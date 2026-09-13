@@ -3,8 +3,8 @@ import type { Command } from "../../types/command.js";
 import { clearActiveRadio } from "../../music/radio.js";
 import { EMBED_COLORS, embed, privateReplyAndCleanup, silentReply, silentReplyAndCleanup } from "../../utils/embed.js";
 
-const NO_PLAYER = "🚫 | Mình chưa phát nhạc ở server này.";
-const STOPPED = "🔇 | Đã dừng nhạc, xoá hàng đợi và rời kênh thoại.";
+const NO_PLAYER = "🚫 Mình chưa phát nhạc ở server này.";
+const STOPPED = "🔇 Đã dừng nhạc, xoá hàng đợi và rời kênh thoại.";
 
 export const command: Command = {
   data: new SlashCommandBuilder()
@@ -13,23 +13,23 @@ export const command: Command = {
   async execute(interaction) {
     const player = interaction.client.lavalink.getPlayer(interaction.guildId!);
     if (!player) {
-      await privateReplyAndCleanup(interaction, embed(NO_PLAYER, EMBED_COLORS.error, "Stop"));
+      await privateReplyAndCleanup(interaction, embed(NO_PLAYER, EMBED_COLORS.error, "Dừng phát nhạc"));
       return;
     }
 
     clearActiveRadio(interaction.guildId!);
     await player.destroy("User requested stop");
-    await interaction.reply(silentReply(embed(STOPPED, EMBED_COLORS.default, "Stop")));
+    await interaction.reply(silentReply(embed(STOPPED, EMBED_COLORS.default, "Dừng phát nhạc")));
   },
   async executeMessage(message) {
     const player = message.client.lavalink.getPlayer(message.guildId!);
     if (!player) {
-      await silentReplyAndCleanup(message, embed(NO_PLAYER, EMBED_COLORS.error, "Stop"));
+      await silentReplyAndCleanup(message, embed(NO_PLAYER, EMBED_COLORS.error, "Dừng phát nhạc"));
       return;
     }
 
     clearActiveRadio(message.guildId!);
     await player.destroy("User requested stop");
-    await message.reply(silentReply(embed(STOPPED, EMBED_COLORS.default, "Stop")));
+    await message.reply(silentReply(embed(STOPPED, EMBED_COLORS.default, "Dừng phát nhạc")));
   },
 };

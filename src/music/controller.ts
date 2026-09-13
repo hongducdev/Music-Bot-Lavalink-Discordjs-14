@@ -23,9 +23,9 @@ export function buildMusicController(player?: Player | null): ActionRowBuilder<B
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId(MUSIC_CONTROLLER_IDS.playPause)
-      .setEmoji("⏯️")
+      .setEmoji(isPaused ? "▶️" : "⏸️")
       .setLabel(isPaused ? "Tiếp tục" : "Tạm dừng")
-      .setStyle(ButtonStyle.Secondary),
+      .setStyle(ButtonStyle.Primary),
     new ButtonBuilder()
       .setCustomId(MUSIC_CONTROLLER_IDS.skip)
       .setEmoji("⏭️")
@@ -62,7 +62,7 @@ export async function handleMusicController(
   if (!player) {
     await privateReplyAndCleanup(
       interaction,
-      embed("🚫 | Hiện không có nhạc đang phát ở server này.", EMBED_COLORS.error, "Controller")
+      embed("🚫 Hiện không có nhạc đang phát ở server này.", EMBED_COLORS.error, "Điều khiển nhạc")
     );
     return true;
   }
@@ -73,7 +73,7 @@ export async function handleMusicController(
   if (!memberVoiceChannelId) {
     await privateReplyAndCleanup(
       interaction,
-      embed("🚫 | Bạn cần vào kênh thoại trước đã!", EMBED_COLORS.error, "Controller")
+      embed("🚫 Bạn cần vào kênh thoại trước đã!", EMBED_COLORS.error, "Điều khiển nhạc")
     );
     return true;
   }
@@ -82,9 +82,9 @@ export async function handleMusicController(
     await privateReplyAndCleanup(
       interaction,
       embed(
-        "🚫 | Bạn phải ở cùng kênh thoại với bot mới điều khiển được nhé.",
+        "🚫 Bạn phải ở cùng kênh thoại với bot mới điều khiển được nhé.",
         EMBED_COLORS.error,
-        "Controller"
+        "Điều khiển nhạc"
       )
     );
     return true;
@@ -96,13 +96,13 @@ export async function handleMusicController(
         await player.resume();
         await privateReplyAndCleanup(
           interaction,
-          embed("▶️ | Đã tiếp tục phát nhạc.", EMBED_COLORS.default, "Play")
+          embed("▶️ Đã tiếp tục phát nhạc.", EMBED_COLORS.default, "Phát nhạc")
         );
       } else {
         await player.pause();
         await privateReplyAndCleanup(
           interaction,
-          embed("⏸️ | Đã tạm dừng nhạc.", EMBED_COLORS.default, "Pause")
+          embed("⏸️ Đã tạm dừng nhạc.", EMBED_COLORS.default, "Tạm dừng")
         );
       }
       break;
@@ -112,7 +112,7 @@ export async function handleMusicController(
       if (!player.queue.current) {
         await privateReplyAndCleanup(
           interaction,
-          embed("🚫 | Không có bài nào đang phát để bỏ qua.", EMBED_COLORS.error, "Skip")
+          embed("🚫 Không có bài nào đang phát để bỏ qua.", EMBED_COLORS.error, "Bỏ qua bài")
         );
         return true;
       }
@@ -120,7 +120,7 @@ export async function handleMusicController(
       await player.skip(0, false);
       await privateReplyAndCleanup(
         interaction,
-        embed(`⏩ | Đã bỏ qua:\n> **${skipped}**`, EMBED_COLORS.default, "Skip")
+        embed(`⏩ Đã bỏ qua:\n> **${skipped}**`, EMBED_COLORS.default, "Bỏ qua bài")
       );
       break;
     }
@@ -129,7 +129,7 @@ export async function handleMusicController(
       if (player.queue.tracks.length < 2) {
         await privateReplyAndCleanup(
           interaction,
-          embed("⚠️ | Hàng đợi cần ít nhất **2** bài để xáo trộn.", EMBED_COLORS.error, "Shuffle")
+          embed("⚠️ Hàng đợi cần ít nhất **2** bài để xáo trộn.", EMBED_COLORS.error, "Trộn hàng đợi")
         );
         return true;
       }
@@ -137,9 +137,9 @@ export async function handleMusicController(
       await privateReplyAndCleanup(
         interaction,
         embed(
-          `🔀 | Đã xáo trộn **${player.queue.tracks.length}** bài hát trong hàng đợi.`,
+          `🔀 Đã xáo trộn **${player.queue.tracks.length}** bài hát trong hàng đợi.`,
           EMBED_COLORS.default,
-          "Shuffle"
+          "Trộn hàng đợi"
         )
       );
       break;
@@ -150,7 +150,7 @@ export async function handleMusicController(
       await player.setRepeatMode(targetMode);
       await privateReplyAndCleanup(
         interaction,
-        embed(repeatModeMessage(targetMode), EMBED_COLORS.default, "Loop")
+        embed(repeatModeMessage(targetMode), EMBED_COLORS.default, "Chế độ lặp")
       );
       break;
     }
@@ -159,7 +159,7 @@ export async function handleMusicController(
       await player.destroy("User stopped via button controller");
       await privateReplyAndCleanup(
         interaction,
-        embed("⏹️ | Đã dừng phát nhạc, xoá hàng đợi và rời kênh thoại.", EMBED_COLORS.default, "Stop")
+        embed("⏹️ Đã dừng phát nhạc, xoá hàng đợi và rời kênh thoại.", EMBED_COLORS.default, "Dừng phát nhạc")
       );
       break;
     }

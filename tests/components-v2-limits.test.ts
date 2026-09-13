@@ -15,6 +15,11 @@ import {
 import { buildBotInfoEmbed, inviteButton } from "../src/bot-info.js";
 import { buildRadioEmbed, buildRadioSelectMenu } from "../src/music/radio.js";
 import { buildMusicController } from "../src/music/controller.js";
+import { buildNowPlayingCard } from "../src/music/now-playing-card.js";
+import { buildQueueEmbed } from "../src/commands/music/queue.js";
+import { overviewEmbed, detailEmbed } from "../src/commands/utility/help.js";
+import { loadCommands } from "../src/utils/command-loader.js";
+import { resolve } from "node:path";
 
 /**
  * Guard cho Components V2: moi card that phai nam trong gioi han API cua Discord.
@@ -44,11 +49,13 @@ function walk(nodes: AnyComponent[], visit: (node: AnyComponent) => void): void 
   for (const node of nodes) {
     visit(node);
     if (Array.isArray(node.components)) walk(node.components, visit);
+    if (node.accessory) walk([node.accessory], visit);
   }
 }
 
 /** Nem loi neu payload vi pham bat ky gioi han API nao. */
 function assertValidV2(nodes: AnyComponent[]): void {
+  let textLength = 0;
   const total = countComponents(nodes);
   expect(total, `qua ${MAX_COMPONENTS_PER_MESSAGE} component`).toBeLessThanOrEqual(
     MAX_COMPONENTS_PER_MESSAGE
@@ -56,6 +63,7 @@ function assertValidV2(nodes: AnyComponent[]): void {
 
   walk(nodes, (node) => {
     if (node.type === 10) {
+      textLength += node.content.length;
       expect(typeof node.content).toBe("string");
       expect(node.content.length, "Text Display qua dai").toBeLessThanOrEqual(
         MAX_TEXT_DISPLAY_LENGTH
@@ -82,6 +90,9 @@ function assertValidV2(nodes: AnyComponent[]): void {
     if (node.type === 12) {
       expect(node.items.length, "Media Gallery can 1-10 item").toBeGreaterThanOrEqual(1);
       expect(node.items.length, "Media Gallery toi da 10 item").toBeLessThanOrEqual(10);
+      for (const item of node.items) {
+        expect(item.description?.length ?? 0).toBeLessThanOrEqual(MAX_MEDIA_DESCRIPTION);
+      }
     }
 
     if (node.type === 14) {
@@ -119,6 +130,7 @@ function assertValidV2(nodes: AnyComponent[]): void {
       }
     }
   });
+  expect(textLength, "combined card text budget").toBeLessThanOrEqual(4000);
 }
 
 function payloadComponents(builder: MessageContainerBuilder, rows: ActionRowBuilder<any>[] = []) {
@@ -156,6 +168,65 @@ const fakeClient = {
 } as unknown as Client;
 
 describe("Components V2 API limits", () => {
+  it("bounds the entire card including oversized header, fields, note and footer", () => {
+    const large = "x".repeat(9000);
+    assertValidV2(payloadComponents(embed(large, undefined, large)
+      .setSectionNote(large).setImage("https://x/y.png", large)
+      .addFields({ name: large, value: large })
+      .setFooter({ text: large }).setTimestamp(), [buildMusicController(fakePlayer)]));
+  });
+
+  it("rejects more than 40 nested components before a network request", () => {
+    const card = embed("hello");
+    for (let i = 0; i < 7; i++) card.addActionRows(buildMusicController(fakePlayer));
+    expect(() => card.toJSON()).toThrow(/40-component/);
+  });
+
+  it("renders every actual command in help and keeps individual help cards valid", async () => {
+    const { commands } = await loadCommands(resolve("src/commands"));
+    const card = overviewEmbed([...commands.values()]);
+    assertValidV2(payloadComponents(card));
+    const text = JSON.stringify(card.toJSON());
+    for (const command of commands.values()) {
+      expect(text).toContain(`/${command.data.name}`);
+      assertValidV2(payloadComponents(detailEmbed(command)));
+    }
+  });
+
+  it("keeps the current track separate from all ten queue entries", () => {
+    const track = { info: { title: "Title ".repeat(1000), duration: 60_000, artworkUrl: "https://x/art.png" } };
+    const player = { ...fakePlayer, queue: { current: track, tracks: Array(12).fill(track) } };
+    const card = buildQueueEmbed(player);
+    const json = card.toJSON();
+    assertValidV2(payloadComponents(card));
+    expect(json.components[0].type).toBe(9);
+    expect(JSON.stringify(json.components[0])).not.toContain("**1.**");
+    expect(JSON.stringify(json)).toContain("**10.**");
+    expect(JSON.stringify(json)).toContain("Còn 2 bài");
+  });
+
+  it("renders a gallery, paused state and live-safe timing in the actual music card", () => {
+    const track = { info: { title: "Song", author: "Artist", duration: 60_000, artworkUrl: "https://x/art.png" } };
+    const player = { ...fakePlayer, position: 30_000, paused: true, queue: { current: track, tracks: [] } };
+    const card = buildNowPlayingCard(player);
+    assertValidV2(payloadComponents(card));
+    const json = card.toJSON();
+    expect(json.components.some(c => c.type === 12)).toBe(true);
+    expect(JSON.stringify(json)).toContain("Đã tạm dừng");
+    expect(JSON.stringify(json)).toContain("0:30 / 1:00");
+    expect(JSON.stringify(json)).toContain("Tiếp tục");
+
+    const live = { ...track, info: { ...track.info, duration: 9_223_372_036_854_775_807, artworkUrl: "invalid" } };
+    const liveCard = buildNowPlayingCard({ ...player, queue: { current: live, tracks: [live] } });
+    assertValidV2(payloadComponents(liveCard));
+    expect(JSON.stringify(liveCard.toJSON())).toContain("Trực tiếp");
+    expect(JSON.stringify(liveCard.toJSON())).not.toContain("256204");
+    expect(liveCard.toJSON().components.some(c => c.type === 12)).toBe(false);
+    const queue = buildQueueEmbed({ ...player, queue: { current: live, tracks: [live] } });
+    expect(JSON.stringify(queue.toJSON())).toContain("+ trực tiếp");
+    expect(JSON.stringify(queue.toJSON())).not.toContain("256204");
+  });
+
   it("text-only card stays valid", () => {
     assertValidV2(payloadComponents(embed("hello")));
   });

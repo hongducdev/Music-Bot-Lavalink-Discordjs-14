@@ -14,40 +14,25 @@ import { artworkUrl, formatDuration, formatTrackDuration, trackLink } from "../.
 
 const PREVIEW_LIMIT = 10;
 
-function buildQueueEmbed(player: Player): MessageContainerBuilder {
+export function buildQueueEmbed(player: Player): MessageContainerBuilder {
   const current = player.queue.current;
   const tracks = player.queue.tracks;
   const preview = tracks.slice(0, PREVIEW_LIMIT);
-
-  let description = preview.length
-    ? preview
-        .map(
-          (track, i) =>
-            `**${i + 1}** - ${trackLink(track.info)} | \`${formatTrackDuration(track.info.duration)}\``
-        )
-        .join("\n")
-    : "📭 | Hàng đợi trống, chưa có bài nào tiếp theo.";
-
-  const rest = tracks.length - PREVIEW_LIMIT;
-  if (rest > 0) description += `\n\n…và còn **${rest}** bài nữa.`;
-
-  const totalMs = tracks.reduce((sum, track) => sum + (track.info.duration ?? 0), 0);
-
-  const builder = embed(description, EMBED_COLORS.default, "Queue").addFields(
-    {
-      name: "> Đang phát:",
-      value: current
-        ? `${trackLink(current.info)} | \`${formatTrackDuration(current.info.duration)}\``
-        : "Không có",
-      inline: true,
-    },
-    { name: "> Tổng số bài:", value: `${tracks.length}`, inline: true },
-    { name: "> Tổng thời gian:", value: formatDuration(totalMs), inline: true }
-  );
-
-  builder.setFooter({ text: `${tracks.length} bài trong hàng đợi` });
-  const thumbnail = current ? artworkUrl(current.info) : null;
-  if (thumbnail) builder.setThumbnail(thumbnail, `Ảnh bìa bài hát ${current!.info.title}`);
+  const totalMs = tracks.reduce((sum, track) =>
+    sum + (formatTrackDuration(track.info.duration) === "Trực tiếp" || track.info.isStream ? 0 : (track.info.duration ?? 0)), 0);
+  const hasLive = tracks.some(track => track.info.isStream || formatTrackDuration(track.info.duration) === "Trực tiếp");
+  const list = preview.map((track, i) =>
+    `**${i + 1}.** ${trackLink({ title: track.info.title })} · ${track.info.isStream ? "Trực tiếp" : formatTrackDuration(track.info.duration)}`
+  ).join("\n");
+  const remaining = Math.max(0, tracks.length - PREVIEW_LIMIT);
+  const builder = embed(
+    current ? trackLink(current.info) : "Chưa có bài đang phát",
+    EMBED_COLORS.default,
+    "Hàng đợi"
+  ).setSectionNote(current ? `${player.paused ? "Đã tạm dừng" : "Đang phát"} · ${current.info.isStream ? "Trực tiếp" : formatTrackDuration(current.info.duration)}` : "Thêm bài bằng `/play`")
+    .addFields({ name: "Tiếp theo", value: list || "Hàng đợi trống. Dùng `/play` để chọn bài tiếp theo." })
+    .setFooter({ text: `${tracks.length} bài chờ · ${formatDuration(totalMs)}${hasLive ? " + trực tiếp" : ""}${remaining ? ` · Còn ${remaining} bài ngoài bản xem trước` : ""}` });
+  if (current) builder.setThumbnail(artworkUrl(current.info), `Ảnh bìa: ${current.info.title}`);
   return builder;
 }
 
@@ -61,7 +46,7 @@ export const command: Command = {
     if (!player) {
       await privateReplyAndCleanup(
         interaction,
-        embed("🚫 | Hiện không có hàng đợi nào.", EMBED_COLORS.error, "Queue")
+        embed("🚫 Hiện không có hàng đợi nào.", EMBED_COLORS.error, "Hàng đợi")
       );
       return;
     }
@@ -73,7 +58,7 @@ export const command: Command = {
     if (!player) {
       await silentReplyAndCleanup(
         message,
-        embed("🚫 | Hiện không có hàng đợi nào.", EMBED_COLORS.error, "Queue")
+        embed("🚫 Hiện không có hàng đợi nào.", EMBED_COLORS.error, "Hàng đợi")
       );
       return;
     }

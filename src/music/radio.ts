@@ -188,15 +188,14 @@ export function findRadioStation(input?: string | null): RadioStation | undefine
 }
 
 export function buildRadioEmbed(): MessageContainerBuilder {
-  const list = Object.values(RADIO_STATIONS)
-    .map((s) => `${s.emoji} **${s.name}** (\`${s.id}\`)\n> ${s.description}`)
-    .join("\n\n");
-
-  return embed(
-    `Chọn một đài phát thanh 24/7 từ menu bên dưới hoặc dùng lệnh: \`/radio <tên_đài>\`\n\n${list}`,
-    EMBED_COLORS.default,
-    "Đài phát thanh 24/7"
-  );
+  const stations = Object.values(RADIO_STATIONS);
+  const names = (list: RadioStation[]) => list.map(s => `${s.emoji} **${s.name}** · \`${s.id}\``).join("\n");
+  return embed("Chọn âm thanh cho buổi học, giờ làm hoặc lúc nghỉ ngơi.", EMBED_COLORS.default, "Radio 24/7")
+    .addFields(
+      { name: "Tập trung & thư giãn", value: names(stations.filter(s => ["lofi", "sleep", "chill"].includes(s.id))) },
+      { name: "Phát thanh Việt Nam", value: names(stations.filter(s => !["lofi", "sleep", "chill"].includes(s.id))) }
+    )
+    .setFooter({ text: "Vào kênh thoại rồi chọn đài bên dưới · /stop để kết thúc" });
 }
 
 export function buildRadioSelectMenu(): ActionRowBuilder<StringSelectMenuBuilder> {

@@ -31,7 +31,7 @@ export async function playRadioStation(
 ): Promise<{ success: boolean; message: string }> {
   const voiceChannel = member.voice?.channel;
   if (!voiceChannel) {
-    return { success: false, message: "🚫 | Bạn cần vào một kênh thoại trước đã!" };
+    return { success: false, message: "🚫 Bạn cần vào một kênh thoại trước đã!" };
   }
 
   const guildId = voiceChannel.guild?.id ?? (voiceChannel as any).guildId;
@@ -52,7 +52,7 @@ export async function playRadioStation(
   if (!res.tracks.length) {
     return {
       success: false,
-      message: `🚫 | Hiện tại không thể kết nối tới đài **${station.name}**. Thử lại sau nhé!`,
+      message: `🚫 Hiện tại không thể kết nối tới đài **${station.name}**. Thử lại sau nhé!`,
     };
   }
 
@@ -112,7 +112,7 @@ export const command: Command = {
     if (!station) {
       await privateReplyAndCleanup(
         interaction,
-        embed("⚠️ | Không tìm thấy kênh đài này.", EMBED_COLORS.error, "Radio")
+        embed("⚠️ Không tìm thấy kênh đài này.", EMBED_COLORS.error, "Radio")
       );
       return;
     }
@@ -121,7 +121,7 @@ export const command: Command = {
     if (!member?.voice?.channel) {
       await privateReplyAndCleanup(
         interaction,
-        embed("🚫 | Bạn cần vào một kênh thoại trước đã!", EMBED_COLORS.error, "Radio")
+        embed("🚫 Bạn cần vào một kênh thoại trước đã!", EMBED_COLORS.error, "Radio")
       );
       return;
     }
@@ -155,7 +155,7 @@ export const command: Command = {
       await silentReplyAndCleanup(
         message,
         embed(
-          "⚠️ | Không tìm thấy kênh đài này. Dùng `!radio` để xem danh sách các đài có sẵn.",
+          "⚠️ Không tìm thấy kênh đài này. Dùng `!radio` để xem danh sách các đài có sẵn.",
           EMBED_COLORS.error,
           "Radio"
         )
@@ -167,7 +167,7 @@ export const command: Command = {
     if (!member?.voice?.channel) {
       await silentReplyAndCleanup(
         message,
-        embed("🚫 | Bạn cần vào một kênh thoại trước đã!", EMBED_COLORS.error, "Radio")
+        embed("🚫 Bạn cần vào một kênh thoại trước đã!", EMBED_COLORS.error, "Radio")
       );
       return;
     }

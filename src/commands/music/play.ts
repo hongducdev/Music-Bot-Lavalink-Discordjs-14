@@ -23,7 +23,7 @@ export type AnyTrack = Track | UnresolvedTrack;
 
 function missingPermissionEmbed(scope: string, names: string[]) {
   return embed(
-    `🚫 | Mình thiếu quyền sau ở ${scope}:\n${names.map((name) => `• ${name}`).join("\n")}`,
+    `🚫 Mình thiếu quyền sau ở ${scope}:\n${names.map((name) => `• ${name}`).join("\n")}`,
     EMBED_COLORS.error,
     "Thiếu quyền"
   );
@@ -32,13 +32,13 @@ function missingPermissionEmbed(scope: string, names: string[]) {
 function addedTrackEmbed(track: AnyTrack) {
   const info = track.info;
   const builder = embed(
-    `✅ | Đã thêm vào hàng đợi:\n> ${trackLink(info)}`,
+    trackLink(info),
     EMBED_COLORS.default,
-    "Thêm vào hàng đợi"
+    "Đã thêm vào hàng đợi"
   ).addFields(
-    { name: "⏱️ | Thời lượng", value: formatTrackDuration(info.duration), inline: true },
-    { name: "🎵 | Kênh", value: info.author || "Không rõ", inline: true },
-    { name: "👌 | Yêu cầu bởi", value: requesterName(track.requester), inline: true }
+    { name: "⏱️ Thời lượng", value: formatTrackDuration(info.duration), inline: true },
+    { name: "🎵 Kênh", value: info.author || "Không rõ", inline: true },
+    { name: "👌 Yêu cầu bởi", value: requesterName(track.requester), inline: true }
   );
 
   const thumbnail = artworkUrl(info);
@@ -48,7 +48,7 @@ function addedTrackEmbed(track: AnyTrack) {
 
 function addedPlaylistEmbed(count: number, title: string) {
   return embed(
-    `📥 | Đã thêm **${count}** bài vào hàng đợi:\n> ${title}`,
+    `📥 Đã thêm **${count}** bài vào hàng đợi:\n> ${title}`,
     EMBED_COLORS.default,
     "Thêm playlist vào hàng đợi"
   );
@@ -72,7 +72,7 @@ export const command: Command = {
     if (!voiceChannel) {
       await privateReplyAndCleanup(
         interaction,
-        embed("🚫 | Bạn cần vào một kênh thoại trước đã!", EMBED_COLORS.error, "Play")
+        embed("🚫 Bạn cần vào một kênh thoại trước đã!", EMBED_COLORS.error, "Phát nhạc")
       );
       return;
     }
@@ -81,7 +81,7 @@ export const command: Command = {
     if (!query) {
       await privateReplyAndCleanup(
         interaction,
-        embed("✍️ | Vui lòng nhập tên bài hát hoặc link nhé!", EMBED_COLORS.error, "Play")
+        embed("✍️ Vui lòng nhập tên bài hát hoặc link nhé!", EMBED_COLORS.error, "Phát nhạc")
       );
       return;
     }
@@ -110,7 +110,7 @@ export const command: Command = {
       return;
     }
 
-    // /play tra loi rieng cho nguoi go lenh; thong bao cong khai do card "Now playing" dam nhiem.
+    // /play tra loi rieng cho nguoi go lenh; thong bao cong khai do card "Đang phát" dam nhiem.
     await interaction.deferReply({ flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 });
 
     clearActiveRadio(interaction.guildId!);
@@ -132,7 +132,7 @@ export const command: Command = {
 
     if (!res.tracks.length) {
       await interaction.editReply({
-        components: [embed(`😕 | Không tìm thấy bài nào cho **${query}**.`, EMBED_COLORS.error, "Play")],
+        components: [embed(`😕 Không tìm thấy bài nào cho **${query}**.`, EMBED_COLORS.error, "Phát nhạc")],
         allowedMentions: NO_PING,
       });
       deleteAfter(() => interaction.deleteReply(), DELETE_AFTER.error);
@@ -163,7 +163,7 @@ export const command: Command = {
     if (!voiceChannel) {
       await silentReplyAndCleanup(
         message,
-        embed("🚫 | Bạn cần vào một kênh thoại trước đã!", EMBED_COLORS.error, "Play")
+        embed("🚫 Bạn cần vào một kênh thoại trước đã!", EMBED_COLORS.error, "Phát nhạc")
       );
       return;
     }
@@ -173,9 +173,9 @@ export const command: Command = {
       await silentReplyAndCleanup(
         message,
         embed(
-          "✍️ | Vui lòng nhập tên bài hát hoặc link! Ví dụ: `!play faded`",
+          "✍️ Vui lòng nhập tên bài hát hoặc link! Ví dụ: `!play faded`",
           EMBED_COLORS.error,
-          "Play"
+          "Phát nhạc"
         )
       );
       return;
@@ -223,7 +223,7 @@ export const command: Command = {
     if (!res.tracks.length) {
       await silentReplyAndCleanup(
         message,
-        embed(`😕 | Không tìm thấy bài nào cho **${query}**.`, EMBED_COLORS.error, "Play")
+        embed(`😕 Không tìm thấy bài nào cho **${query}**.`, EMBED_COLORS.error, "Phát nhạc")
       );
       return;
     }

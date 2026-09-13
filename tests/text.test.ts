@@ -8,6 +8,7 @@ import {
   requesterName,
   shortReason,
   trackLink,
+  safeHttpUrl,
 } from "../src/utils/text.js";
 
 const JAVA_STACK =
@@ -74,8 +75,17 @@ describe("formatDuration", () => {
 });
 
 describe("trackLink", () => {
+  it("bounds and escapes provider titles and rejects non-web links", () => {
+    const title = trackLink({ title: "[click](https://evil.test)\n# Heading" });
+    expect(title).not.toContain("\n");
+    expect(title).toBe("\\[click\\](https://evil.test) # Heading");
+    expect(trackLink({ title: "A ] B", uri: "https://x/y" })).toBe("[A \\] B](<https://x/y>)");
+    expect(trackLink({ title: "Song", uri: "javascript:alert(1)" })).toBe("Song");
+    expect(trackLink({ title: "x".repeat(5000) }).length).toBeLessThanOrEqual(100);
+    expect(safeHttpUrl("https://x/a(b)")).toBe("https://x/a%28b%29");
+  });
   it("links the title when a uri is present", () => {
-    expect(trackLink({ title: "Song", uri: "https://x/y" })).toBe("[Song](https://x/y)");
+    expect(trackLink({ title: "Song", uri: "https://x/y" })).toBe("[Song](<https://x/y>)");
   });
 
   it("falls back to a bare title without a uri", () => {

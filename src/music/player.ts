@@ -1,21 +1,15 @@
 import { LavalinkManager, type Player, type Track, type UnresolvedTrack } from "lavalink-client";
 import {
-  ActionRowBuilder,
-  ButtonBuilder,
   MessageFlags,
-  type APIEmbedField,
   type Client,
 } from "discord.js";
 import { config } from "../config.js";
 import {
   artworkUrl,
-  formatTrackDuration,
-  playerStatus,
-  requesterName,
   shortReason,
   trackLink,
 } from "../utils/text.js";
-import { DELETE_AFTER, EMBED_COLORS, NO_PING, deleteAfter, embed } from "../utils/embed.js";
+import { DELETE_AFTER, EMBED_COLORS, NO_PING, deleteAfter, embed, type MessageContainerBuilder } from "../utils/embed.js";
 import {
   FALLBACK_SOURCES,
   buildFallbackQuery,
@@ -32,7 +26,7 @@ import {
   playedIdentifiers,
   rememberPlayed,
 } from "./autoplay.js";
-import { buildMusicController } from "./controller.js";
+import { buildNowPlayingCard } from "./now-playing-card.js";
 import {
   clearActiveRadio,
   decideRadioEnd,
@@ -91,26 +85,8 @@ export function createLavalink(client: Client): LavalinkManager {
   lavalink.on("trackStart", (player, track) => {
     rememberPlayed(player.guildId, track?.info.identifier);
     if (isDirectStream(track)) markRadioStarted(player.guildId);
-    const info = track?.info;
     notify(client, player.textChannelId, {
-      description: `▶️ | Đang phát:\n> ${info ? trackLink(info) : "Không rõ"}`,
-      author: "Now playing",
-      thumbnail: info ? artworkUrl(info) : null,
-      sectionNote: `🎵 ${info?.author || "Không rõ"} · ⏱️ ${formatTrackDuration(info?.duration)}`,
-      fields: [
-        {
-          name: "🔷 | Trạng thái",
-          value: playerStatus({
-            volume: player.volume,
-            paused: player.paused,
-            autoplay: isAutoplayEnabled(player.guildId),
-          }),
-          inline: false,
-        },
-        { name: "👌 | Yêu cầu bởi", value: requesterName(track?.requester), inline: false },
-      ],
-      footer: `${player.queue.tracks.length} bài trong hàng đợi`,
-      components: [buildMusicController(player)],
+      card: buildNowPlayingCard(player, track),
       deleteAfterMs: DELETE_AFTER.nowPlaying,
     });
   });
@@ -122,7 +98,7 @@ export function createLavalink(client: Client): LavalinkManager {
 
   lavalink.on("trackStuck", (player, track) => {
     notify(client, player.textChannelId, {
-      description: `⚠️ | Bài **${track?.info.title}** bị kẹt, mình bỏ qua nhé.`,
+      description: `⚠️ Bài **${track?.info.title}** bị kẹt, mình bỏ qua nhé.`,
       author: "Cảnh báo",
       deleteAfterMs: DELETE_AFTER.error,
     });
@@ -164,7 +140,7 @@ async function handleQueueEnd(client: Client, player: Player): Promise<void> {
     clearActiveRadio(player.guildId);
     notify(client, player.textChannelId, {
       description:
-        `🚫 | Đài **${station.name}** không giữ được luồng phát.\n` +
+        `🚫 Đài **${station.name}** không giữ được luồng phát.\n` +
         "Thử đài khác bằng `/radio` nhé!",
       author: "Đài lỗi",
       color: EMBED_COLORS.error,
@@ -174,22 +150,18 @@ async function handleQueueEnd(client: Client, player: Player): Promise<void> {
   }
 
   notify(client, player.textChannelId, {
-    description: "⏹️ | Đã phát hết danh sách. Thêm bài mới bằng `/play` nhé!",
+    description: "⏹️ Đã phát hết danh sách. Thêm bài mới bằng `/play` nhé!",
     author: "Hết nhạc",
     deleteAfterMs: DELETE_AFTER.error,
   });
 }
 
 interface NotifyOptions {
-  description: string;
+  description?: string;
+  card?: MessageContainerBuilder;
   author?: string;
   color?: number;
   thumbnail?: string | null;
-  /** Dong bo sung trong Section, chi hien khi co thumbnail. */
-  sectionNote?: string;
-  fields?: APIEmbedField[];
-  footer?: string;
-  components?: ActionRowBuilder<ButtonBuilder>[];
   /** Tu xoa thong bao sau ms. Bo trong = giu lai. */
   deleteAfterMs?: number;
 }
@@ -203,13 +175,8 @@ function notify(
   const channel = client.channels.cache.get(channelId);
   if (!channel?.isSendable()) return;
 
-  const builder = embed(options.description, options.color ?? EMBED_COLORS.default, options.author);
+  const builder = options.card ?? embed(options.description ?? "-", options.color ?? EMBED_COLORS.default, options.author);
   if (options.thumbnail) builder.setThumbnail(options.thumbnail, "Ảnh bìa bài hát");
-  if (options.sectionNote) builder.setSectionNote(options.sectionNote);
-  if (options.fields?.length) builder.addFields(options.fields);
-  if (options.footer) builder.setFooter({ text: options.footer });
-  // Nut nam trong container de dinh lien voi the bai hat, khong render roi ben ngoai.
-  if (options.components?.length) builder.addActionRows(...options.components);
 
   channel
     .send({
@@ -287,7 +254,7 @@ async function retryWithFallback(
         next.userData = markAsFallback(next.userData);
         player.queue.add(next, 0);
         notify(client, player.textChannelId, {
-          description: `🔁 | YouTube chặn **${track!.info.title}**.\nĐã chuyển sang nguồn khác:\n> ${trackLink(next.info)}`,
+          description: `🔁 YouTube chặn **${track!.info.title}**.\nĐã chuyển sang nguồn khác:\n> ${trackLink(next.info)}`,
           author: "Đổi nguồn phát",
           thumbnail: artworkUrl(next.info),
           deleteAfterMs: DELETE_AFTER.error,
@@ -298,7 +265,7 @@ async function retryWithFallback(
     }
 
     notify(client, player.textChannelId, {
-      description: `🚫 | **${track?.info.title}**\n\nYouTube chặn stream nguồn này (${reason}). Thử video khác nhé!`,
+      description: `🚫 **${track?.info.title}**\n\nYouTube chặn stream nguồn này (${reason}). Thử video khác nhé!`,
       author: "Không phát được",
       color: EMBED_COLORS.error,
       deleteAfterMs: DELETE_AFTER.error,
@@ -306,7 +273,7 @@ async function retryWithFallback(
   } catch (error) {
     console.error("[fallback] Lỗi khi thử nguồn khác:", error);
     notify(client, player.textChannelId, {
-      description: `🚫 | **${track?.info.title}**\n\nYouTube chặn stream nguồn này (${reason}).`,
+      description: `🚫 **${track?.info.title}**\n\nYouTube chặn stream nguồn này (${reason}).`,
       author: "Không phát được",
       color: EMBED_COLORS.error,
       deleteAfterMs: DELETE_AFTER.error,

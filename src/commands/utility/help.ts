@@ -18,7 +18,7 @@ function categoryIcon(category: string): string {
   return CATEGORY_ICONS[category] ?? "📁";
 }
 
-function overviewEmbed(commands: Command[]): MessageContainerBuilder {
+export function overviewEmbed(commands: Command[]): MessageContainerBuilder {
   const grouped = new Map<string, Command[]>();
   for (const command of commands) {
     const category = command.category ?? "khác";
@@ -26,15 +26,15 @@ function overviewEmbed(commands: Command[]): MessageContainerBuilder {
   }
 
   const builder = embed(
-    `📖 | Bot có **${commands.length}** lệnh, dùng được cả slash và prefix.`,
+    `Bắt đầu với \`/play <tên bài hoặc link>\`.\n**${commands.length}** lệnh · dùng được cả slash và prefix.`,
     EMBED_COLORS.default,
-    "Help"
+    "Trợ giúp"
   );
 
   for (const [category, list] of grouped) {
     builder.addFields({
-      name: `> ${categoryIcon(category)} ${category} [${list.length}]`,
-      value: list.map((item) => `\`${item.data.name}\``).join(" "),
+      name: `${categoryIcon(category)} ${category === "music" ? "Nghe nhạc" : category === "utility" ? "Tiện ích" : category} · ${list.length}`,
+      value: list.map((item) => `\`/${item.data.name}\` — ${item.data.description}`).join("\n"),
     });
   }
 
@@ -44,7 +44,7 @@ function overviewEmbed(commands: Command[]): MessageContainerBuilder {
   return builder;
 }
 
-function detailEmbed(command: Command): MessageContainerBuilder {
+export function detailEmbed(command: Command): MessageContainerBuilder {
   const prefixUsage = command.executeMessage
     ? `\`${config.prefix}${command.data.name}\``
     : "không hỗ trợ";
@@ -52,15 +52,13 @@ function detailEmbed(command: Command): MessageContainerBuilder {
     command.aliases?.map((alias) => `\`${config.prefix}${alias}\``).join(", ") || "không có";
 
   return embed(
-    `📖 | Chi tiết lệnh **${command.data.name}**`,
+    command.data.description || "Hướng dẫn sử dụng lệnh",
     EMBED_COLORS.default,
-    "Help"
+    `Lệnh /${command.data.name}`
   ).addFields(
-    { name: "> Mô tả", value: command.data.description || "không có", inline: false },
-    { name: "> Danh mục", value: command.category ?? "khác", inline: true },
-    { name: "> Slash", value: `\`/${command.data.name}\``, inline: true },
-    { name: "> Prefix", value: prefixUsage, inline: true },
-    { name: "> Viết tắt", value: aliases, inline: false }
+    { name: "Slash", value: `\`/${command.data.name}\``, inline: true },
+    { name: "Prefix", value: prefixUsage, inline: true },
+    { name: "Viết tắt", value: aliases, inline: false }
   );
 }
 
@@ -72,7 +70,7 @@ function findCommand(commands: Command[], query: string): Command | undefined {
 }
 
 function notFoundEmbed(query: string): MessageContainerBuilder {
-  return embed(`🚫 | Không tìm thấy lệnh **${query}**.`, EMBED_COLORS.error, "Help");
+  return embed(`🚫 Không tìm thấy lệnh **${query}**.`, EMBED_COLORS.error, "Trợ giúp");
 }
 
 export const command: Command = {
