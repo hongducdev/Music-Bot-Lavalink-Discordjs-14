@@ -14,7 +14,6 @@ import {
   embed,
   privateReply,
   privateReplyAndCleanup,
-  setEmbedIcon,
   silentReply,
   silentReplyAndCleanup,
 } from "./utils/embed.js";
@@ -24,6 +23,8 @@ import { handleMusicController } from "./music/controller.js";
 import { RADIO_SELECT_ID, findRadioStation } from "./music/radio.js";
 import { playRadioStation } from "./commands/music/radio.js";
 import type { GuildMember } from "discord.js";
+import { handleWeatherSelection } from "./commands/utility/weather.js";
+import { WEATHER_SELECT_PREFIX } from "./weather/weather-card.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -71,7 +72,6 @@ client.on("raw", (d) => client.lavalink.sendRawData(d));
 client.once(Events.ClientReady, () => {
   console.log(`Logged in as ${client.user?.tag}`);
   if (client.user) {
-    setEmbedIcon(client.user.displayAvatarURL());
     startStatusRotation(client, config.prefix);
     client.lavalink.init({ ...client.user });
   }
@@ -87,13 +87,22 @@ client.on(Events.InteractionCreate, async (interaction) => {
     return;
   }
 
+  if (interaction.isStringSelectMenu() && interaction.customId.startsWith(WEATHER_SELECT_PREFIX)) {
+    try {
+      await handleWeatherSelection(interaction);
+    } catch {
+      console.error("[weather] Không cập nhật được tin nhắn thời tiết.");
+    }
+    return;
+  }
+
   if (interaction.isStringSelectMenu() && interaction.customId === RADIO_SELECT_ID) {
     const stationId = interaction.values[0];
     const station = findRadioStation(stationId);
     if (!station) {
       await privateReplyAndCleanup(
         interaction,
-        embed("⚠️ | Không tìm thấy kênh đài này.", EMBED_COLORS.error, "Radio")
+        embed("⚠️ Không tìm thấy kênh đài này.", EMBED_COLORS.error, "Radio")
       );
       return;
     }
@@ -102,7 +111,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (!member?.voice?.channel) {
       await privateReplyAndCleanup(
         interaction,
-        embed("🚫 | Bạn cần vào một kênh thoại trước đã!", EMBED_COLORS.error, "Radio")
+        embed("🚫 Bạn cần vào một kênh thoại trước đã!", EMBED_COLORS.error, "Radio")
       );
       return;
     }
@@ -131,7 +140,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
   } catch (error) {
     console.error(`Error executing ${interaction.commandName}:`, error);
     const errorEmbed = () =>
-      embed("🚫 | Có lỗi xảy ra khi chạy lệnh. Thử lại giúp mình nhé!", EMBED_COLORS.error, "Lỗi");
+      embed("🚫 Có lỗi xảy ra khi chạy lệnh. Thử lại giúp mình nhé!", EMBED_COLORS.error, "Lỗi");
 
     if (interaction.replied || interaction.deferred) {
       const sent = await interaction.followUp(privateReply(errorEmbed()));
@@ -191,7 +200,7 @@ client.on(Events.MessageCreate, async (message) => {
     console.error(`Error executing message command ${commandName}:`, error);
     await silentReplyAndCleanup(
       message,
-      embed("🚫 | Có lỗi xảy ra khi chạy lệnh. Thử lại giúp mình nhé!", EMBED_COLORS.error, "Lỗi")
+      embed("🚫 Có lỗi xảy ra khi chạy lệnh. Thử lại giúp mình nhé!", EMBED_COLORS.error, "Lỗi")
     );
   }
 });
