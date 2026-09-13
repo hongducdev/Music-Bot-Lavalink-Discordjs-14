@@ -79,6 +79,7 @@ npm test                     # unit test (vitest)
 | Tự động phát | `/autoplay <bat>` | `!autoplay on\|off` | `!ap` |
 | Dừng & rời kênh | `/stop` | `!stop` | - |
 | Kiểm tra ping | `/ping` | `!ping` | - |
+| Thời tiết | `/weather <diadiem>` | `!weather <địa điểm>` | `!thoitiet <địa điểm>` |
 | Trợ giúp | `/help [lenh]` | `!help [lenh]` | `!h` |
 | RPC trên profile | `/rpc connect\|status\|disconnect` | `!rpc …` | - |
 
@@ -86,7 +87,28 @@ npm test                     # unit test (vitest)
 
 ## ✨ Tính năng
 
+### Giao diện Components V2
+
+Toàn bộ phản hồi dùng container V2 với màu Discord blurple, tiêu đề tiếng Việt, các khối nội dung ngăn bằng separator và nút nằm trong thẻ. Thông báo lỗi dùng màu đỏ; phản hồi ngắn không chèn ảnh trang trí.
+
+- **Đang phát:** ảnh bìa lớn, thời gian nghe/trực tiếp, người yêu cầu, âm lượng, lặp/autoplay, bài tiếp theo và điều khiển. `/nowplaying` và thông báo bắt đầu bài dùng cùng bố cục.
+- **Hàng đợi:** bài hiện tại cạnh thumbnail, tối đa 10 bài tiếp theo bên dưới; tổng thời gian không cộng thời lượng vô hạn của radio.
+- **Trợ giúp / radio / thông tin bot:** chia nhóm rõ ràng; radio có menu chọn đài, thông tin bot có nút mời.
+- Thẻ phản ánh trạng thái lúc gửi; dùng `/nowplaying` để lấy trạng thái mới. Ảnh không hợp lệ được bỏ qua, không chặn nội dung chữ.
+
+[Xem trước bố cục](plans/20260913-components-v2-rebuild/preview.html) dùng dữ liệu minh họa và ảnh thay thế, không phải ảnh chụp Discord. Tạo lại sau khi build bằng `node plans/20260913-components-v2-rebuild/preview.mjs`. Khởi động lại tiến trình bot để nạp UI mới; không cần đăng ký lại slash command.
+
+### Thời tiết
+
+`/weather diadiem:Hà Nội`, `!weather Hà Nội` hoặc `@Bot weather Hà Nội` hiển thị thời tiết hiện tại, cảm giác thực, độ ẩm, gió, dự báo 6 giờ tới và 7 ngày trong thẻ Components V2. Nhiều địa điểm trùng tên sẽ có menu chọn; chỉ người gọi lệnh được thay đổi thẻ. Slash trả lời riêng tư, prefix trả lời công khai nhưng không ping.
+
+Giờ theo địa điểm, nhiệt độ °C, gió km/h; 💧 là xác suất mưa, không phải lượng mưa. Dữ liệu thiếu hiện “—”. Thẻ là ảnh chụp dữ liệu lúc gọi lệnh; gọi lại để cập nhật. Tìm địa danh chưa đúng thì thêm quốc gia (`Paris, France`).
+
+Tham khảo cách dùng nguồn dữ liệu của [Overmorrow](https://github.com/hongducdev/Overmorrow); triển khai độc lập với [Open-Meteo](https://open-meteo.com/en/docs) và [GeoNames qua Geocoding API](https://open-meteo.com/en/docs/geocoding-api). Không cần API key cho endpoint miễn phí dành cho sử dụng phi thương mại; mỗi yêu cầu có timeout 10 giây. Không thêm dependency. Chạy `npm run deploy` và khởi động lại bot để nạp lệnh `/weather` mới.
+
 ### Ping bot
+
+`/ping` và `!ping` hiển thị **Gateway heartbeat** (trung bình heartbeat của các shard) và **HTTP phản hồi** (thời gian gửi phản hồi đến khi nhận kết quả API, đo bằng `performance.now()`). HTTP gồm thời gian SDK xử lý/chờ rate limit và mạng; không phải ping Internet của người dùng. Heartbeat chưa có mẫu hợp lệ hiện “Chưa có dữ liệu”. Uptime là thời gian tiến trình Node.js đã chạy.
 
 Gõ `@Bot` (ping trực tiếp, không kèm gì) để nhận thẻ thông tin: ping, thời gian hoạt động, số server/thành viên, prefix, tác giả — kèm nút **Mời bot**.
 
