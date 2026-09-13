@@ -89,14 +89,18 @@ npm test                     # unit test (vitest)
 
 ### Giao diện Components V2
 
-Toàn bộ phản hồi dùng container V2 với màu Discord blurple, tiêu đề tiếng Việt, các khối nội dung ngăn bằng separator và nút nằm trong thẻ. Thông báo lỗi dùng màu đỏ; phản hồi ngắn không chèn ảnh trang trí.
+Toàn bộ phản hồi dùng container V2, tiêu đề tiếng Việt có một icon nhất quán, nhãn thông tin không chèn emoji trang trí và nút có cả icon lẫn chữ. Bộ icon dùng chung nằm trong `src/utils/ui.ts`. Nhạc, tiện ích và thời tiết đồng bộ màu hồng pastel cũ `#ECC5C0`; lỗi dùng màu đỏ `#FF4949`. Tiến độ nhạc nằm trong khối riêng dài hơn, thời gian xuống dòng; chiều rộng thực tế do Discord quyết định.
 
-- **Đang phát:** ảnh bìa lớn, thời gian nghe/trực tiếp, người yêu cầu, âm lượng, lặp/autoplay, bài tiếp theo và điều khiển. `/nowplaying` và thông báo bắt đầu bài dùng cùng bố cục.
+- **Đang phát:** ảnh bìa ở đầu, tên bài và nghệ sĩ, thanh tiến độ kèm thời gian, âm lượng/lặp/autoplay, rồi nút điều khiển và bài tiếp theo. `/nowplaying` và thông báo bắt đầu bài dùng cùng bố cục. Thanh tiến độ là ảnh chụp trạng thái, không kéo để tua; radio hiện “Trực tiếp”. Nút lặp ghi rõ tắt/một bài/hàng đợi.
 - **Hàng đợi:** bài hiện tại cạnh thumbnail, tối đa 10 bài tiếp theo bên dưới; tổng thời gian không cộng thời lượng vô hạn của radio.
 - **Trợ giúp / radio / thông tin bot:** chia nhóm rõ ràng; radio có menu chọn đài, thông tin bot có nút mời.
 - Thẻ phản ánh trạng thái lúc gửi; dùng `/nowplaying` để lấy trạng thái mới. Ảnh không hợp lệ được bỏ qua, không chặn nội dung chữ.
 
 [Xem trước bố cục](plans/20260913-components-v2-rebuild/preview.html) dùng dữ liệu minh họa và ảnh thay thế, không phải ảnh chụp Discord. Tạo lại sau khi build bằng `node plans/20260913-components-v2-rebuild/preview.mjs`. Khởi động lại tiến trình bot để nạp UI mới; không cần đăng ký lại slash command.
+
+### Chuyển sang radio
+
+Chuyển từ nhạc sang radio bằng `/radio station:vov3`, `!radio vov3` hoặc menu chọn đài: bot thay bài hiện tại ngay, bỏ tạm dừng, xoá các bài chờ và tắt chế độ lặp cũ. Nếu không tìm được đài, nhạc hiện tại vẫn giữ nguyên; nếu API từ chối chuyển đài, hàng đợi và chế độ lặp được khôi phục trong bot.
 
 ### Thời tiết
 

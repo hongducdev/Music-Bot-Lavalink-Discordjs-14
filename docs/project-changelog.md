@@ -9,11 +9,21 @@
 
 ### Changed
 
+- Restored original pastel pink #ECC5C0 across music, utility and weather containers, with original error red #FF4949. Playback progress now uses a separate 48-segment code block and puts elapsed/total time on the following line; native Discord controls final sizing.
+
+- YouTube-inspired music layout: artwork first, linked title/artist, bounded timeline and labelled controls before next-track details. Red music accent on nowplaying, queue and added-track cards; live streams omit progress. Centralized heading/controller icon vocabulary, plain metadata labels, repeat-mode labels and invite-button icon across V2 cards. Refreshed nine-state local preview.
+
 - Rebuilt shared Components V2 layout: native JSON only, blurple/red accents, separate content groups, compact separators, controls before muted footer. Removed synthetic embed metadata and unused bot-author icon state.
 - Unified track-start and nowplaying cards with Media Gallery artwork, listening details, next-track preview and one primary playback button.
 - Queue now presents the current track first, followed by ten bounded titles. Redesigned help categories, radio groups, bot introduction and Vietnamese command feedback.
 
 ### Fixed
+
+- Phản hồi radio/`/play` sau khi defer: gửi kèm `MessageFlags.IsComponentsV2` ở chính lần tạo card. Discord không gán flag V2 cho message defer, nên `editReply` thiếu flag bị từ chối (`Invalid Form Body … type must be one of (1,)`) — đài đổi xong nhưng người dùng vẫn thấy báo lỗi. Lỗi gửi card cũng không còn bị báo thành "đổi đài lỗi" (chỉ ghi log), và `client.on("error")` giữ bot sống khi Discord trả event `error`.
+
+- Radio giu quyen phat khi dang phat dai: autoplay khong con thay dai bang bai lien quan, moi track dai (ke ca livestream YouTube, khong chi HLS `http`) duoc tinh la "dang phat dai" nen bo dem loi hoat dong dung, va loi luong dai bao dung la loi dai thay vi "YouTube chan stream nguon nay".
+
+- Radio transition: replace the current track explicitly with `clientTrack`, `paused: false`, and position zero instead of stop/skip plus asynchronous track-end advancement. Clear queued songs through the queue API and disable inherited repeat mode; restore local queue/current/repeat and station selection if replacement fails. Shared by slash, prefix and station menu. Regression checks exercise the installed Lavalink Player/Queue with only network transport stubbed.
 
 - Low-impact ping display: `/ping` and prefix ping now measure the awaited HTTP reply with a monotonic clock, replacing local-time minus Discord-time subtraction that could report negative latency. Rename WebSocket metric to Gateway heartbeat; unavailable samples display no fabricated value. Keep uptime and response visibility; edit the original reply instead of posting another message.
 - Medium-impact payload rejection risk: bound combined card text and recursive component count; cap media alt text and ignore malformed/non-web media URLs.
@@ -21,6 +31,10 @@
 - Low-impact queue display: live-stream durations no longer inflate total time with Java's unlimited-duration sentinel.
 
 ### Verification
+
+- Radio keepalive + V2 reply: build passes, 210 tests / 28 files pass. Hai test trong `tests/radio-command.test.ts` fail nếu bỏ `flags: RADIO_REPLY_FLAGS`; ba test trong `tests/radio-keepalive.test.ts` fail nếu bỏ guard autoplay/đếm lỗi đài. Live: nhạc đang phát → VOV3 → `playing=true` 60s, không `trackError`, không `WARN/ERROR` phía Lavalink; REST kiểm chứng `PATCH` message V2 thiếu flag = 200 còn gửi type 17 vào message không flag = 400. Chưa tự bấm được interaction thật (cần người dùng restart và chọn đài).
+
+- Music UI refresh: build passes, 200 tests / 26 files pass. Checks include media/control order, repeat-mode labels, shared heading icons and progress bounds. Nine illustrative previews generated from production builders; live Discord visual acceptance not performed.
 
 - Weather: build and 197 tests / 25 files pass, including six weather regression checks. Live search → location lookup → forecast → V2 serialization succeeded for Hanoi (168 hourly rows, seven daily rows). Live Discord acceptance and deployment not performed.
 
