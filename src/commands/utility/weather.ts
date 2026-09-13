@@ -41,10 +41,10 @@ export const command: Command = {
   async execute(interaction) {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     const card = await searchCard(interaction.options.getString("diadiem", true), interaction.user.id);
-    await interaction.editReply({ components: [card], flags: MessageFlags.IsComponentsV2, allowedMentions: NO_PING });
+    await interaction.editReply({ components: [card], flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2, allowedMentions: NO_PING });
   },
   async executeMessage(message, args) {
-    const sent = await message.reply(silentReply(embed("Đang tìm địa điểm và lấy dự báo…", 0x38bdf8, "Thời tiết")));
+    const sent = await message.reply(silentReply(embed("Đang tìm địa điểm và lấy dự báo…", EMBED_COLORS.default, "Thời tiết")));
     const card = await searchCard(args.join(" "), message.author.id);
     await sent.edit({ components: [card], allowedMentions: NO_PING });
   },

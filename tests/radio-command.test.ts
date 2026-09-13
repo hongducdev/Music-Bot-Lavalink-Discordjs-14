@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { MessageFlags, type ChatInputCommandInteraction } from "discord.js";
-import { command, playRadioStation } from "../src/commands/music/radio.js";
+import { command, playRadioStation, replyRadioResult } from "../src/commands/music/radio.js";
 import { RADIO_STATIONS, RADIO_SELECT_ID } from "../src/music/radio.js";
 
 describe("radio command", () => {
@@ -44,16 +44,16 @@ describe("radio command", () => {
     expect(interaction.reply).toHaveBeenCalledOnce();
   });
 
-  it("plays radio station when user is in voice channel", async () => {
-    const track = { info: { title: "Lofi Live" } };
+  it("plays radio station when user is in voice channel", async () => {    const track = { info: { title: "Lofi Live" } };
     const player = {
       connected: false,
       connect: vi.fn(async () => {}),
       search: vi.fn(async () => ({ tracks: [track] })),
       queue: {
         tracks: [],
-        add: vi.fn(),
+        splice: vi.fn(async () => []),
       },
+      setRepeatMode: vi.fn(async () => {}),
       playing: false,
       play: vi.fn(async () => {}),
     };
@@ -89,5 +89,48 @@ describe("radio command", () => {
       member.user
     );
     expect(player.play).toHaveBeenCalledOnce();
+    expect(player.play).toHaveBeenCalledWith({ clientTrack: track, paused: false, position: 0 });
+  });
+
+  // Discord bo qua IsComponentsV2 o buoc defer: neu editReply thieu flag nay thi
+  // Discord tu choi card (type 17) du dai da doi xong -> nguoi dung thay "loi".
+  it("carries the Components V2 flag on the deferred reply", async () => {
+    const interaction = {
+      editReply: vi.fn(async () => ({})),
+      deleteReply: vi.fn(async () => {}),
+    } as unknown as ChatInputCommandInteraction;
+
+    await replyRadioResult(interaction, { success: true, message: "ok" });
+
+    const body = (interaction.editReply as any).mock.calls[0][0];
+    expect(body.flags & MessageFlags.IsComponentsV2).toBe(MessageFlags.IsComponentsV2);
+    expect(body.flags & MessageFlags.Ephemeral).toBe(MessageFlags.Ephemeral);
+  });
+
+  it("replies V2-safe after switching station from the slash command", async () => {
+    const track = { info: { title: "Lofi Live" } };
+    const player = {
+      connected: true,
+      search: vi.fn(async () => ({ tracks: [track] })),
+      queue: { tracks: [], splice: vi.fn(async () => []) },
+      setRepeatMode: vi.fn(async () => {}),
+      playing: true,
+      play: vi.fn(async () => {}),
+    };
+    const interaction = {
+      guildId: "guild-1",
+      channel: { id: "c1" },
+      member: { user: { id: "u1" }, voice: { channel: { id: "v1", guild: { id: "guild-1" } } } },
+      options: { getString: () => "lofi" },
+      client: { lavalink: { getPlayer: () => player, createPlayer: () => player } },
+      deferReply: vi.fn(async () => {}),
+      editReply: vi.fn(async () => ({})),
+    } as unknown as ChatInputCommandInteraction;
+
+    await command.execute(interaction);
+
+    const body = (interaction.editReply as any).mock.calls[0][0];
+    expect(body.flags & MessageFlags.IsComponentsV2).toBe(MessageFlags.IsComponentsV2);
+    expect(body.flags & MessageFlags.Ephemeral).toBe(MessageFlags.Ephemeral);
   });
 });

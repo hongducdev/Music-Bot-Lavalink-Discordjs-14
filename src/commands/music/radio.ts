@@ -2,6 +2,7 @@ import {
   SlashCommandBuilder,
   MessageFlags,
   type GuildMember,
+  type RepliableInteraction,
 } from "discord.js";
 import type { Command } from "../../types/command.js";
 import {
@@ -19,9 +20,37 @@ import {
   buildRadioEmbed,
   buildRadioSelectMenu,
   setActiveRadio,
+  clearActiveRadio,
+  getActiveRadio,
   tagRadioTrack,
   type RadioStation,
 } from "../../music/radio.js";
+
+/**
+ * Co IsComponentsV2 phai gui kem o chinh lan tao ra components: Discord bo qua
+ * flag nay o buoc defer, nen editReply khong co flag se bi tu choi
+ * ("Value of field type must be one of (1,)") du dai da doi xong.
+ * Ephemeral gui lai de khong mat tinh rieng tu khi flags bi thay the.
+ */
+export const RADIO_REPLY_FLAGS = MessageFlags.Ephemeral | MessageFlags.IsComponentsV2;
+
+export interface RadioResult {
+  success: boolean;
+  message: string;
+}
+
+/** Tra loi mot interaction da defer bang card V2 cua radio. */
+export async function replyRadioResult(
+  interaction: RepliableInteraction,
+  res: RadioResult
+): Promise<void> {
+  const color = res.success ? EMBED_COLORS.default : EMBED_COLORS.error;
+  await interaction.editReply({
+    components: [embed(res.message, color, "Radio")],
+    flags: RADIO_REPLY_FLAGS,
+  });
+  if (!res.success) deleteAfter(() => interaction.deleteReply(), DELETE_AFTER.error);
+}
 
 export async function playRadioStation(
   member: GuildMember,
@@ -63,16 +92,24 @@ export async function playRadioStation(
   // ponytail: sua hien thi, khong dung cho logic; bo neu Lavalink tu tra metadata.
   tagRadioTrack(track, station);
 
-  player.queue.tracks.length = 0;
-  player.queue.add(track, 0);
-
-  // Ghi nho dai dang phat de tu phat lai neu luong bi dut (xem handleQueueEnd).
-  setActiveRadio(guildId, station);
-
-  if (player.playing) {
-    await player.skip(0, false);
-  } else {
-    await player.play();
+  // Replace directly: skip only stops the old track and waits for trackEnd.
+  // An explicit clientTrack also replaces a paused/current track instead of replaying it.
+  const previousTracks = [...player.queue.tracks];
+  const previousCurrent = player.queue.current;
+  const previousRepeat = player.repeatMode;
+  const previousStation = getActiveRadio(guildId);
+  try {
+    await player.queue.splice(0, player.queue.tracks.length);
+    await player.setRepeatMode("off");
+    setActiveRadio(guildId, station);
+    await player.play({ clientTrack: track, paused: false, position: 0 });
+  } catch {
+    clearActiveRadio(guildId);
+    if (previousStation) setActiveRadio(guildId, previousStation);
+    player.queue.current = previousCurrent;
+    await player.queue.splice(0, player.queue.tracks.length, previousTracks);
+    await player.setRepeatMode(previousRepeat);
+    return { success: false, message: `🚫 Không chuyển được sang đài **${station.name}**. Thử lại sau nhé!` };
   }
 
   return {
@@ -127,18 +164,10 @@ export const command: Command = {
     }
 
     // Tim stream co the lau hon 3s -> phai defer truoc khi goi mang.
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 });
+    await interaction.deferReply({ flags: RADIO_REPLY_FLAGS });
 
     const res = await playRadioStation(member, interaction.channel, station, interaction.client);
-    if (!res.success) {
-      await interaction.editReply({
-        components: [embed(res.message, EMBED_COLORS.error, "Radio")],
-      });
-      deleteAfter(() => interaction.deleteReply(), DELETE_AFTER.error);
-      return;
-    }
-
-    await interaction.editReply({ components: [embed(res.message, EMBED_COLORS.default, "Radio")] });
+    await replyRadioResult(interaction, res);
   },
   async executeMessage(message, args) {
     const query = args.join(" ").trim();

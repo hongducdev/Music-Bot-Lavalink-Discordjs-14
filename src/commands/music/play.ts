@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, MessageFlags, type GuildMember } from "discord.js";
+import { SlashCommandBuilder, MessageFlags, escapeMarkdown, type GuildMember } from "discord.js";
 import type { Track, UnresolvedTrack } from "lavalink-client";
 import type { Command } from "../../types/command.js";
 import {
@@ -33,12 +33,12 @@ function addedTrackEmbed(track: AnyTrack) {
   const info = track.info;
   const builder = embed(
     trackLink(info),
-    EMBED_COLORS.default,
+    EMBED_COLORS.music,
     "Đã thêm vào hàng đợi"
   ).addFields(
-    { name: "⏱️ Thời lượng", value: formatTrackDuration(info.duration), inline: true },
-    { name: "🎵 Kênh", value: info.author || "Không rõ", inline: true },
-    { name: "👌 Yêu cầu bởi", value: requesterName(track.requester), inline: true }
+    { name: "Thời lượng", value: formatTrackDuration(info.duration), inline: true },
+    { name: "Nghệ sĩ", value: escapeMarkdown(info.author || "Không rõ"), inline: true },
+    { name: "Yêu cầu bởi", value: requesterName(track.requester), inline: true }
   );
 
   const thumbnail = artworkUrl(info);
@@ -111,7 +111,10 @@ export const command: Command = {
     }
 
     // /play tra loi rieng cho nguoi go lenh; thong bao cong khai do card "Đang phát" dam nhiem.
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 });
+    // IsComponentsV2 phai nam o chinh lan gui components: Discord bo qua flag nay
+    // o buoc defer nen editReply thieu flag se bi tu choi.
+    const replyFlags = MessageFlags.Ephemeral | MessageFlags.IsComponentsV2;
+    await interaction.deferReply({ flags: replyFlags });
 
     clearActiveRadio(interaction.guildId!);
 
@@ -134,6 +137,7 @@ export const command: Command = {
       await interaction.editReply({
         components: [embed(`😕 Không tìm thấy bài nào cho **${query}**.`, EMBED_COLORS.error, "Phát nhạc")],
         allowedMentions: NO_PING,
+        flags: replyFlags,
       });
       deleteAfter(() => interaction.deleteReply(), DELETE_AFTER.error);
       return;
@@ -144,12 +148,14 @@ export const command: Command = {
       await interaction.editReply({
         components: [addedPlaylistEmbed(res.tracks.length, res.playlist?.title || "Playlist")],
         allowedMentions: NO_PING,
+        flags: replyFlags,
       });
     } else {
       player.queue.add(res.tracks[0]);
       await interaction.editReply({
         components: [addedTrackEmbed(res.tracks[0])],
         allowedMentions: NO_PING,
+        flags: replyFlags,
       });
     }
 

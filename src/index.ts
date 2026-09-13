@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { Client, GatewayIntentBits, Collection, Events, MessageFlags } from "discord.js";
+import { Client, GatewayIntentBits, Collection, Events } from "discord.js";
 import { config } from "./config.js";
 import { createLavalink } from "./music/player.js";
 import { loadCommands } from "./utils/command-loader.js";
@@ -21,8 +21,8 @@ import type { Command } from "./types/command.js";
 import { buildBotInfoEmbed, inviteButton, shouldShowBotInfo, stripBotMention } from "./bot-info.js";
 import { handleMusicController } from "./music/controller.js";
 import { RADIO_SELECT_ID, findRadioStation } from "./music/radio.js";
-import { playRadioStation } from "./commands/music/radio.js";
-import type { GuildMember } from "discord.js";
+import { playRadioStation, replyRadioResult, RADIO_REPLY_FLAGS } from "./commands/music/radio.js";
+import type { GuildMember, StringSelectMenuInteraction } from "discord.js";
 import { handleWeatherSelection } from "./commands/utility/weather.js";
 import { WEATHER_SELECT_PREFIX } from "./weather/weather-card.js";
 
@@ -69,6 +69,10 @@ client.aliases = aliases;
 
 client.on("raw", (d) => client.lavalink.sendRawData(d));
 
+// Node coi 'error' khong co listener la loi khong bat duoc -> ca tien trinh thoat.
+// Luon co mot listener de mot loi mang/gateway chi lam bot bao loi, khong tat bot.
+client.on("error", (error) => console.error("[client] Lỗi kết nối Discord:", error));
+
 client.once(Events.ClientReady, () => {
   console.log(`Logged in as ${client.user?.tag}`);
   if (client.user) {
@@ -97,36 +101,19 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 
   if (interaction.isStringSelectMenu() && interaction.customId === RADIO_SELECT_ID) {
-    const stationId = interaction.values[0];
-    const station = findRadioStation(stationId);
-    if (!station) {
-      await privateReplyAndCleanup(
-        interaction,
-        embed("⚠️ Không tìm thấy kênh đài này.", EMBED_COLORS.error, "Radio")
-      );
-      return;
+    try {
+      await handleRadioSelection(interaction);
+    } catch (error) {
+      // Discord co the tu choi mot lan tra loi (het han, sai payload...). Bot
+      // phai song tiep: dai da phat thi van phat, chi bao loi cho nguoi chon.
+      console.error("[radio] Không phản hồi được tương tác chọn đài:", error);
+      const notice = embed("🚫 Có lỗi khi đổi đài. Thử lại giúp mình nhé!", EMBED_COLORS.error, "Radio");
+      const fail = () =>
+        interaction.replied || interaction.deferred
+          ? interaction.followUp(privateReply(notice))
+          : privateReplyAndCleanup(interaction, notice);
+      await fail().catch(() => {});
     }
-
-    const member = interaction.member as GuildMember | null;
-    if (!member?.voice?.channel) {
-      await privateReplyAndCleanup(
-        interaction,
-        embed("🚫 Bạn cần vào một kênh thoại trước đã!", EMBED_COLORS.error, "Radio")
-      );
-      return;
-    }
-
-    // Tim stream co the lau hon 3s -> phai defer truoc khi goi mang.
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 });
-
-    const res = await playRadioStation(member, interaction.channel, station, interaction.client);
-    if (!res.success) {
-      await interaction.editReply({ components: [embed(res.message, EMBED_COLORS.error, "Radio")] });
-      deleteAfter(() => interaction.deleteReply(), DELETE_AFTER.error);
-      return;
-    }
-
-    await interaction.editReply({ components: [embed(res.message, EMBED_COLORS.default, "Radio")] });
     return;
   }
 
@@ -150,6 +137,37 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
   }
 });
+
+/** Xu ly menu chon dai: tai su dung dung mot ham phat dai cho slash/prefix/menu. */
+async function handleRadioSelection(interaction: StringSelectMenuInteraction): Promise<void> {
+  const station = findRadioStation(interaction.values[0]);
+  if (!station) {
+    await privateReplyAndCleanup(
+      interaction,
+      embed("⚠️ Không tìm thấy kênh đài này.", EMBED_COLORS.error, "Radio")
+    );
+    return;
+  }
+
+  const member = interaction.member as GuildMember | null;
+  if (!member?.voice?.channel) {
+    await privateReplyAndCleanup(
+      interaction,
+      embed("🚫 Bạn cần vào một kênh thoại trước đã!", EMBED_COLORS.error, "Radio")
+    );
+    return;
+  }
+
+  // Tim stream co the lau hon 3s -> phai defer truoc khi goi mang.
+  await interaction.deferReply({ flags: RADIO_REPLY_FLAGS });
+
+  const res = await playRadioStation(member, interaction.channel, station, interaction.client);
+  // Doi dai xong la xong: neu chi loi gui card thi ghi log, khong bao nguoc
+  // lai la "doi dai loi" (dai dang phat that).
+  await replyRadioResult(interaction, res).catch((error) =>
+    console.error("[radio] Đổi đài xong nhưng không gửi được phản hồi:", error)
+  );
+}
 
 client.on(Events.MessageCreate, async (message) => {
   if (message.author.bot || !message.guild) return;

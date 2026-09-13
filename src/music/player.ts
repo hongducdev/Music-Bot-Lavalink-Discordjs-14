@@ -84,7 +84,10 @@ export function createLavalink(client: Client): LavalinkManager {
 
   lavalink.on("trackStart", (player, track) => {
     rememberPlayed(player.guildId, track?.info.identifier);
-    if (isDirectStream(track)) markRadioStarted(player.guildId);
+    // Dai 24/7 co the la HLS (.m3u8, sourceName "http") hoac livestream YouTube.
+    // Ca hai deu phai duoc coi la "dang phat dai", neu khong bo dem loi (decideRadioEnd)
+    // luon tinh la that bai va bot bo dai chi sau 3 lan dut.
+    if (isDirectStream(track) || getActiveRadio(player.guildId)) markRadioStarted(player.guildId);
     notify(client, player.textChannelId, {
       card: buildNowPlayingCard(player, track),
       deleteAfterMs: DELETE_AFTER.nowPlaying,
@@ -194,13 +197,15 @@ function notify(
 }
 
 /** Het hang doi thi tu tim bai lien quan va them vao hang doi. */
-async function queueRelatedTrack(
+export async function queueRelatedTrack(
   player: Player,
   lastPlayedTrack: Track | UnresolvedTrack | null | undefined
 ): Promise<void> {
   // Dai radio 24/7 khong co metadata that: tim "bai lien quan" theo ten dai chi
-  // ra mot bai hat ngau nhien, lam card Now playing bi lap them lan nua.
+  // ra mot bai hat ngau nhien, lam card Now playing bi lap them lan nua. Dai
+  // YouTube cung vay: autoplay se thay dai bang mot bai hat khi luong dut.
   if (!lastPlayedTrack || isDirectStream(lastPlayedTrack)) return;
+  if (getActiveRadio(player.guildId)) return;
   if (!isAutoplayEnabled(player.guildId)) return;
 
   const played = playedIdentifiers(player.guildId);
@@ -239,6 +244,20 @@ async function retryWithFallback(
   reason: string
 ): Promise<void> {
   try {
+    // Dai 24/7 khong the "thay nguon khac": luong dut thi handleQueueEnd
+    // (queueEnd) moi la noi thu phat lai chinh dai do. Bao nham "YouTube chan"
+    // chi lam nguoi dung tuong dai hong.
+    const station = getActiveRadio(player.guildId);
+    if (station) {
+      notify(client, player.textChannelId, {
+        description: `⚠️ Luồng đài **${station.name}** gián đoạn (${reason}). Đang thử phát lại...`,
+        author: "Đài 24/7",
+        color: EMBED_COLORS.error,
+        deleteAfterMs: DELETE_AFTER.error,
+      });
+      return;
+    }
+
     if (shouldFallback(track)) {
       const query = buildFallbackQuery(track!);
       const found = await firstMatch(
