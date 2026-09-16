@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { Client, GatewayIntentBits, Collection, Events } from "discord.js";
+import { Client, GatewayIntentBits, Collection, Events, Options } from "discord.js";
 import { config } from "./config.js";
 import { createLavalink } from "./music/player.js";
 import { loadCommands } from "./utils/command-loader.js";
@@ -36,6 +36,14 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
   ],
+  // Bot chi doc tin nhan de bat lenh prefix, khong can giu lich su chat. Mac dinh
+  // discord.js giu 200 tin moi kenh va chi sweep `threads`, nen tin nhan + user
+  // tich lai theo thoi gian chay. Giam han muc va them sweep de RSS dung yen.
+  makeCache: Options.cacheWithLimits({ ...Options.DefaultMakeCacheSettings, MessageManager: 50 }),
+  sweepers: {
+    ...Options.DefaultSweeperSettings,
+    messages: { interval: 300, lifetime: 600 },
+  },
 });
 
 client.lavalink = createLavalink(client);
