@@ -7,7 +7,7 @@ Nội dung chi tiết cho mục "Khắc phục sự cố" trong [README](../READ
 Bot tự báo lỗi trong kênh chat khi stream fail. Cần chi tiết thì xem log:
 
 ```powershell
-Get-Content lavalink\logs\spring.log -Tail 60
+Get-Content ..\lavalink-runtime\logs\spring.log -Tail 60     # thư mục Lavalink chạy riêng
 ```
 
 ### Bước 0 — Xác định lỗi nằm ở hệ thống hay ở riêng video
@@ -24,7 +24,7 @@ Invoke-WebRequest "http://localhost:2333/youtube/stream/dQw4w9WgXcQ?withClient=A
 > Test liên tục nhiều video sẽ bị YouTube rate-limit (mọi request đều trả 500 trong vài phút). Nghỉ 1-2 phút rồi test lại.
 
 ### Bước 1 — Kiểm tra danh sách client
-`MUSIC` **chỉ tìm kiếm, không phát được**. Chỉ client `TV` hỗ trợ OAuth. Danh sách đúng trong `application.yml`:
+`MUSIC` **chỉ tìm kiếm, không phát được**. Chỉ client `TV` hỗ trợ OAuth. Danh sách đúng trong `application.yml` của Lavalink (thư mục runtime):
 
 ```yaml
 clients:
@@ -56,18 +56,22 @@ logging:
 
 Sau đó:
 
-1. Chạy Lavalink qua script để `.env` được nạp và log hiện ngay trên terminal:
+1. Chạy Lavalink qua script trong **thư mục runtime** để `.env` của nó được nạp và log hiện ngay trên terminal:
    ```powershell
-   .\lavalink\start.ps1
+   cd D:\MyProjects\lavalink-runtime
+   .\start.ps1
+   ```
+   ```bash
+   cd /srv/lavalink-runtime && bash start.sh
    ```
    > Đừng chạy `java -jar Lavalink.jar` trực tiếp ở bước này — sẽ mất `LAVALINK_PASSWORD` và bot báo lỗi 401.
 2. Terminal in ra `go to https://www.google.com/device and enter code XXXX-XXXX`.
 3. Mở link đó, nhập code, đăng nhập bằng **tài khoản phụ (burner), KHÔNG dùng tài khoản chính**.
-4. Sau khi xác thực, Lavalink in ra `refresh token` — dán vào `.env` để không phải xác thực lại (**không** dán vào `application.yml` vì file đó được commit):
+4. Sau khi xác thực, Lavalink in ra `refresh token` — dán vào `.env` của **Lavalink** (`lavalink-runtime\.env`, không phải `.env` của bot) để không phải xác thực lại (**không** dán vào `application.yml` vì file đó được commit):
    ```
    YT_OAUTH_REFRESH_TOKEN=token vua in ra
    ```
-   `application.yml` đã đọc sẵn biến này qua `${YT_OAUTH_REFRESH_TOKEN:}`.
+   `application.yml` của runtime đã đọc sẵn biến này qua `${YT_OAUTH_REFRESH_TOKEN:}`.
 
 ## Nguồn backup khi YouTube chặn
 
@@ -88,7 +92,7 @@ Khi YouTube từ chối stream, bot tự tìm bài tương tự trên SoundCloud
 ### Bật Spotify (khi có credential)
 
 1. Tạo app miễn phí tại https://developer.spotify.com/dashboard, lấy `Client ID` + `Client Secret`.
-2. Điền `SPOTIFY_CLIENT_ID` + `SPOTIFY_CLIENT_SECRET` vào `.env` (**không** điền vào `lavalink/application.yml` vì file đó được commit — `application.yml` đọc sẵn hai biến này), rồi đổi `plugins.lavasrc.sources.spotify` thành `true`.
+2. Điền `SPOTIFY_CLIENT_ID` + `SPOTIFY_CLIENT_SECRET` vào `.env` của **Lavalink** (`lavalink-runtime\.env` — **không** điền vào `.env` của bot và không điền vào `application.yml` vì file đó được commit; `application.yml` đọc sẵn hai biến này), rồi đổi `plugins.lavasrc.sources.spotify` thành `true`.
 3. Thêm `"spsearch"` vào đầu `FALLBACK_SOURCES` trong `src/music/fallback.ts`.
 
 Lưu ý: Lavalink **không phát được audio gốc của Spotify** (DRM). Spotify chỉ dùng để tìm kiếm/metadata; audio thật vẫn lấy qua chuỗi `providers` (`ytsearch` → `scsearch`).

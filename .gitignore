@@ -1,6 +1,7 @@
 # ===== Bí mật / cấu hình riêng của máy =====
 # Mẫu tương ứng: .env.example
-# Chứa: Discord token, Lavalink password, YouTube OAuth refresh token, Spotify secret
+# Chứa: Discord token, Lavalink password, cấu hình RPC.
+# (Lavalink chạy riêng, đọc .env của chính nó — xem ../lavalink-runtime)
 .env
 .env.local
 .env.*.local
@@ -10,13 +11,6 @@ node_modules/
 dist/
 coverage/
 *.tsbuildinfo
-
-# ===== Lavalink: file tải về, không commit =====
-lavalink/*.jar
-lavalink/*.jar.bak
-lavalink/yt-dlp.exe
-lavalink/plugins/
-lavalink/logs/
 
 # ===== Log & file tạm =====
 *.log

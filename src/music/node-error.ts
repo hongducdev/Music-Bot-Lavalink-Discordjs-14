@@ -12,7 +12,8 @@ export function isNodeAuthError(error: unknown): boolean {
 /** Goi y cach sua khi Lavalink tu choi xac thuc. */
 export function authErrorHint(): string {
   return (
-    "[Lavalink] 401/403 = sai mat khau. Chay Lavalink bang .\\lavalink\\start.ps1 de nap LAVALINK_PASSWORD tu .env " +
+    "[Lavalink] 401/403 = sai mat khau. Chay start.ps1/start.sh trong thu muc runtime Lavalink " +
+    "(mac dinh ../lavalink-runtime) de nap LAVALINK_PASSWORD tu .env cua no " +
     "(chay `java -jar Lavalink.jar` truc tiep se dung mat khau mac dinh)."
   );
 }

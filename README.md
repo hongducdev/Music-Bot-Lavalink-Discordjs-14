@@ -12,7 +12,7 @@ Bot nhạc cho Discord viết bằng TypeScript: **discord.js v14** + **Lavalink
 ## 📦 Yêu cầu
 
 - Node.js 22+
-- Java 17+ (chạy Lavalink v4 độc lập)
+- Java 17+ — chỉ khi chạy Lavalink trên cùng máy (xem mục **Lavalink** bên dưới)
 - Token bot + Application ID từ Discord Developer Portal
 
 ## 🚀 Cài đặt
@@ -22,7 +22,7 @@ npm install
 cp .env.example .env
 ```
 
-`.env` là **nơi duy nhất** chứa secret của dự án — đã bị git ignore, không bao giờ commit.
+`.env` của bot chứa secret phía bot — đã bị git ignore, không bao giờ commit. Lavalink chạy riêng nên có `.env` riêng của nó.
 
 | Biến | Ý nghĩa |
 |---|---|
@@ -31,28 +31,17 @@ cp .env.example .env
 | `LAVALINK_PASSWORD` | Mật khẩu Lavalink — **đặt ngẫu nhiên**, đừng dùng `youshallnotpass` |
 | `GUILD_ID` | (tuỳ chọn) deploy slash command tức thì trong 1 server |
 | `PREFIX` | (tuỳ chọn) tiền tố lệnh text, mặc định `!` |
+| `LAVALINK_HOST` / `LAVALINK_PORT` / `LAVALINK_SECURE` | Trỏ tới Lavalink đang chạy (mặc định `localhost:2333`) |
 | `RPC_*` | (tuỳ chọn) Rich Presence — xem mục “RPC trên profile người nghe” bên dưới |
-| `YT_OAUTH_REFRESH_TOKEN`, `SPOTIFY_*` | (tuỳ chọn) xem [docs/troubleshooting.md](docs/troubleshooting.md) |
 
-`lavalink/application.yml` được commit vì chỉ đọc `${BIẾN}`, không chứa secret. Riêng `Lavalink.jar`, `yt-dlp.exe`, `lavalink/plugins/`, `lavalink/logs/` bị ignore — tự tải/tự tạo ở mục dưới.
+Repo này **không chứa** Lavalink — không jar, không `application.yml`, không launcher. Bot chỉ cần `LAVALINK_HOST`, `LAVALINK_PORT`, `LAVALINK_SECURE`, `LAVALINK_PASSWORD` trong `.env` để nói chuyện với một Lavalink v4 bất kỳ.
 
-## 🎧 Chạy Lavalink (không Docker)
+## 🎧 Lavalink (chạy riêng)
 
-1. Tải `Lavalink.jar` bản **4.2.2 trở lên** (bắt buộc — Discord yêu cầu giao thức voice DAVE).
-2. Khởi động bằng script để secret từ `.env` được nạp:
-
-   ```powershell
-   .\lavalink\start.ps1
-   ```
-
-   > Đừng chạy `java -jar Lavalink.jar` trực tiếp — cách đó không nạp `.env` nên Lavalink dùng mật khẩu mặc định và bot báo 401. Script cũng chỉ cho Lavalink nghe ở `127.0.0.1`.
-
-3. Tải `yt-dlp` (engine chính để phát YouTube, không có trong git) và cập nhật định kỳ khi YouTube đổi cơ chế:
-
-   ```powershell
-   Invoke-WebRequest "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" -OutFile lavalink\yt-dlp.exe
-   .\lavalink\yt-dlp.exe -U
-   ```
+- **Cùng máy:** dùng thư mục runtime nằm cạnh repo (`../lavalink-runtime`, mặc định `D:\MyProjects\lavalink-runtime`). Ở đó có `application.yml`, launcher `start.ps1`/`start.sh` đã tune JVM, `.env` riêng và README hướng dẫn cài (Java 17+, `Lavalink.jar` 4.2.2+, `yt-dlp`).
+- **Máy khác / container:** trỏ `LAVALINK_HOST` + `LAVALINK_PORT` vào đó và đặt `LAVALINK_SECURE=true` khi đi qua HTTPS. Đừng mở port Lavalink ra Internet khi chưa có proxy/TLS — mật khẩu là lớp bảo vệ duy nhất.
+- `LAVALINK_PASSWORD` trong hai `.env` phải **trùng nhau**, nếu không bot nhận 401 ngay khi kết nối.
+- Bot vẫn tự kiểm chứng đường tới Lavalink: `npm run verify:radio` load thử toàn bộ đài trong `RADIO_STATIONS`.
 
 ## ▶️ Deploy & chạy
 
@@ -65,6 +54,27 @@ npm test                     # unit test (vitest)
 
 - `npm run deploy` mặc định deploy toàn cục (có thể mất tới 1 giờ mới hiện). Thêm `GUILD_ID` vào `.env` để có hiệu lực ngay, và script in ra **link mời bot kèm đủ quyền** ở cuối.
 - Bot cần: **Xem kênh, Gửi tin nhắn, Nhúng liên kết** (kênh chat) + **Kết nối, Nói** (kênh thoại). Thiếu quyền thì `/play` báo rõ tên quyền còn thiếu. Ping bot cũng có nút **Mời bot** với đúng bộ quyền đó.
+
+## ⚙️ Tối ưu CPU/RAM
+
+Bot gồm hai tiến trình: **Lavalink (JVM)** — tốn RAM nhất, chạy riêng — và **bot Node.js**.
+
+### Lavalink (JVM)
+
+Phần này nằm ở README của runtime (`../lavalink-runtime`): bộ flag JVM đã tune sẵn trong `start.ps1`/`start.sh` (giới hạn heap **768 MB** thay vì 25% RAM máy), bảng đo trước/sau, và các nút `JAVA_OPTS` khi VPS chỉ có 1 GB RAM hoặc khi chạy nhiều hơn ~5 player.
+
+### Bot Node.js
+
+- `npm start` chạy kèm `--max-old-space-size=384` để V8 dọn sớm thay vì phình tới mức mặc định (~4GB).
+- Cache discord.js được giới hạn trong `src/index.ts`: 50 tin nhắn mỗi kênh và sweep tin cũ hơn 10 phút (mặc định: 200 tin và chỉ sweep thread) — nhờ đó `client.users` cũng không tích lại theo thời gian.
+- Trên VPS nên chạy `npm run build && npm start`, không dùng `npm run dev`: `tsx` tốn thêm ~43 MB RSS lúc khởi động (128 MB so với 86 MB khi đo trên máy dev) và còn transpile mỗi lần nạp module.
+
+### Đo lại trên VPS
+
+```bash
+ps -o pid,rss,pcpu,nlwp,cmd -C java -C node     # RSS (KB), %CPU, số thread
+jcmd <pid> VM.flags | tr ' ' '\n' | grep -E 'MaxHeapSize|UseSerialGC'
+```
 
 ## 🎮 Danh sách lệnh
 
@@ -148,8 +158,8 @@ Bot chỉ tự xoá tin nhắn **của chính nó** (khai báo ở `DELETE_AFTER
 
 Chi tiết đầy đủ — test stream, danh sách client, OAuth YouTube, nguồn backup, Spotify — ở [docs/troubleshooting.md](docs/troubleshooting.md).
 
-- Log Lavalink: `Get-Content lavalink\logs\spring.log -Tail 60`
-- `Sign in to confirm you're not a bot` → bật OAuth trong `application.yml`, xác thực bằng **tài khoản phụ**, dán refresh token vào `.env`.
+- Log Lavalink (thư mục runtime): `Get-Content ..\lavalink-runtime\logs\spring.log -Tail 60`
+- `Sign in to confirm you're not a bot` → bật OAuth trong `application.yml` của runtime, xác thực bằng **tài khoản phụ**, dán refresh token vào `.env` của **Lavalink** (không phải `.env` của bot).
 - YouTube từ chối stream → bot tự tìm bài tương tự trên SoundCloud và báo trong kênh.
 
 ---
