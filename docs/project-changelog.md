@@ -1,5 +1,24 @@
 # Project Changelog
 
+## Unreleased — 2026-09-16
+
+### Changed
+
+- **Lavalink tách khỏi repo bot.** `lavalink/` (jar, `application.yml`, launcher) chuyển sang runtime riêng ở `../lavalink-runtime`, có `.env` riêng, `README.md` và `.gitignore` riêng. Repo bot chỉ còn `LAVALINK_HOST`, `LAVALINK_PORT`, `LAVALINK_SECURE`, `LAVALINK_PASSWORD` trong `.env`; `.gitignore`, `.env.example`, `README.md` và `docs/troubleshooting.md` cập nhật theo. `LAVALINK_PASSWORD` phải trùng ở hai `.env`.
+- JVM của Lavalink được giới hạn trong launcher của runtime (`-Xms64m -Xmx768m -XX:+UseSerialGC -XX:MaxMetaspaceSize=256m -XX:ReservedCodeCacheSize=128m -XX:MaxDirectMemorySize=256m`, đổi được bằng `JAVA_OPTS`). Trước đây `java -jar Lavalink.jar` để JVM tự lấy heap tối đa 25% RAM máy (máy 16GB → **4GB**), kèm Metaspace reserve 1GB và code cache 240MB.
+- `plugins.lavasrc.ytdlp.path` đọc `${YTDLP_PATH:./yt-dlp.exe}` để host Linux trỏ vào `yt-dlp` của hệ thống mà không phải sửa file được commit.
+- Cache discord.js được giới hạn trong `src/index.ts`: 50 tin nhắn mỗi kênh (mặc định 200) và sweep tin cũ hơn 10 phút (mặc định chỉ sweep thread), nên `client.users` không tích lại theo thời gian chạy; `npm start` thêm `--max-old-space-size=384`.
+- `playerUpdateInterval` giữ nguyên 5 giây kèm comment giải thích lý do (xem Verification).
+
+### Verification
+
+- Đo trên máy dev (Lavalink 4.2.2, một player radio HLS), cùng máy cùng tải: không flag → **RSS 294 MB / 60 thread / CPU 0.13 %**; bộ flag trong launcher → **200 MB / 46 thread / 0.01 %** (rảnh) và 224 MB khi đã tạo player. Các biến thể khác cùng mức heap: G1 `-Xms64m` 244 MB, SerialGC `-Xms256m` 254 MB, ParallelGC 429 MB (loại). Số đo và cách đo lại nằm ở `../lavalink-runtime/README.md`.
+- `jcmd VM.flags` xác nhận JVM chạy `MaxHeapSize=768MB`, `+UseSerialGC`, metaspace 256MB, code cache 128MB, direct 256MB. Tạo player thật qua REST (`PATCH /v4/sessions/{id}/players/{guild}` → 200) và `npm run verify:radio` load đủ **11/11 đài** — chạy lại sau khi tách runtime, nên cũng chứng minh bot chỉ cần bốn biến `LAVALINK_*`.
+- Node: `npm run build` + **210 test / 28 file pass**; bot chạy tới bước đăng nhập với Client options mới (dừng ở token giả, không lỗi khởi tạo — assertion libuv khi thoát đã có từ trước, kiểm chứng bằng cách stash `src/index.ts`). Footprint lúc khởi động: `dist` 86 MB, `tsx` 128 MB.
+- **Chưa đo được CPU lúc phát nhạc thật**: Lavalink chỉ chạy pipeline decode/encode sau khi kết nối voice, việc đó cần bot đăng nhập và vào kênh thoại. Cần đo lại trên VPS đang chạy thật.
+- Review đối kháng trên diff bắt được một lỗi thứ tự trong `start.sh` của runtime (đọc `LAVALINK_PORT` trước khi nạp `.env` nên guard kiểm tra sai port) — đã sửa và kiểm chứng lại cả hai nhánh. Cùng review đó đề xuất `playerUpdateInterval` 5 → 30; đã **loại bỏ** vì `player.connected` chỉ cập nhật theo frame đó, mà `play`/`radio` dùng nó làm guard trước khi gửi op 4 — lợi ích không đo được, đổi lại là join voice thừa.
+- Hệ quả cần làm tay: `YT_OAUTH_REFRESH_TOKEN` và `SPOTIFY_*` giờ nằm trong `.env` của runtime và đang để trống sau khi tách (xem `.env.example` của runtime để lấy lại; YouTube chạy được không cần OAuth, chỉ bật khi bị bot-detection).
+
 ## Unreleased — 2026-09-13
 
 ### Added
